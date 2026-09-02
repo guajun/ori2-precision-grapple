@@ -1,4 +1,4 @@
-using OriPrecisionBash.Core;
+using OriPrecisionGrapple.Core;
 
 var tests = new (string Name, Action Run)[]
 {

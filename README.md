@@ -1,4 +1,4 @@
-# Ori Precision Bash
+# Ori Precision Grapple
 
 An experimental BepInEx IL2CPP mod for *Ori and the Will of the Wisps*.
 
@@ -27,12 +27,12 @@ The project remains experimental and has not been packaged as a stable release.
 Requirements: Windows, PowerShell 7 and .NET SDK 8.
 
 ```powershell
-cd OriPrecisionBash
+cd ori2-precision-grapple
 .\scripts\build.ps1
 ```
 
 The script verifies/downloads the pinned BepInEx SDK, builds both assemblies,
-runs the dependency-free core test suite, and creates `artifacts/OriPrecisionBash`.
+runs the dependency-free core test suite, and creates `artifacts/OriPrecisionGrapple`.
 
 ## Install without launching Ori
 
@@ -49,7 +49,7 @@ unknown root loader. It does not launch Ori or Steam.
 
 ## Configuration
 
-BepInEx creates `BepInEx/config/io.github.oriprecisionbash.cfg` after the first
+BepInEx creates `BepInEx/config/io.github.guajun.ori2precisiongrapple.cfg` after the first
 plugin load. Important settings:
 
 - `RadiusPixelsAt1080p = 48`

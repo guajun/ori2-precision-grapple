@@ -1,16 +1,16 @@
 using BepInEx;
 using BepInEx.Unity.IL2CPP;
 using HarmonyLib;
-using OriPrecisionBash.Runtime;
+using OriPrecisionGrapple.Runtime;
 
-namespace OriPrecisionBash;
+namespace OriPrecisionGrapple;
 
 [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
 [BepInProcess("oriwotw.exe")]
 public sealed class Plugin : BasePlugin
 {
-    public const string PluginGuid = "io.github.oriprecisionbash";
-    public const string PluginName = "Ori Precision Bash";
+    public const string PluginGuid = "io.github.guajun.ori2precisiongrapple";
+    public const string PluginName = "Ori Precision Grapple";
     public const string PluginVersion = "0.2.0";
 
     public override void Load()

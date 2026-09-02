@@ -1,8 +1,8 @@
 using System.Reflection;
 using BepInEx.Logging;
-using OriPrecisionBash.Core;
+using OriPrecisionGrapple.Core;
 
-namespace OriPrecisionBash.Runtime;
+namespace OriPrecisionGrapple.Runtime;
 
 internal sealed class DebugOverlayRenderer
 {
@@ -70,7 +70,7 @@ internal sealed class DebugOverlayRenderer
             SetColor(1.0f, 1.0f, 1.0f, 1.0f);
 
             var panelHeight = 34.0f + (snapshot.Lines.Count * LineHeight);
-            Box(PanelX, PanelY, PanelWidth, panelHeight, "Ori Precision Bash Diagnostics");
+            Box(PanelX, PanelY, PanelWidth, panelHeight, "Ori Precision Grapple Diagnostics");
             for (var index = 0; index < snapshot.Lines.Count; index++)
             {
                 Label(

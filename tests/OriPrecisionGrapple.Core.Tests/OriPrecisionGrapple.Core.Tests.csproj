@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>OriPrecisionGrapple.Core.Tests</AssemblyName>
+    <RootNamespace>OriPrecisionGrapple.Core.Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\OriPrecisionGrapple.Core\OriPrecisionGrapple.Core.csproj" />
+  </ItemGroup>
+</Project>

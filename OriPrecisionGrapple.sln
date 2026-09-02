@@ -5,15 +5,15 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{E3C9BA5A-83A9-4981-B862-A23B940D18CA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OriPrecisionBash.Core", "src\OriPrecisionBash.Core\OriPrecisionBash.Core.csproj", "{604AAE7B-0BCF-488E-8A41-D2A2A6D64800}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OriPrecisionGrapple.Core", "src\OriPrecisionGrapple.Core\OriPrecisionGrapple.Core.csproj", "{604AAE7B-0BCF-488E-8A41-D2A2A6D64800}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OriPrecisionBash.Plugin", "src\OriPrecisionBash.Plugin\OriPrecisionBash.Plugin.csproj", "{2446AE9D-B84A-4D79-A563-5560E1670F5E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OriPrecisionGrapple.Plugin", "src\OriPrecisionGrapple.Plugin\OriPrecisionGrapple.Plugin.csproj", "{2446AE9D-B84A-4D79-A563-5560E1670F5E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{DADBAFF0-3133-46FE-8F51-65A0E67F4089}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OriPrecisionBash.Core.Tests", "tests\OriPrecisionBash.Core.Tests\OriPrecisionBash.Core.Tests.csproj", "{145028F6-9011-4CB7-8438-874B5E6AD5BA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OriPrecisionGrapple.Core.Tests", "tests\OriPrecisionGrapple.Core.Tests\OriPrecisionGrapple.Core.Tests.csproj", "{145028F6-9011-4CB7-8438-874B5E6AD5BA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OriPrecisionBash.Runtime.Tests", "tests\OriPrecisionBash.Runtime.Tests\OriPrecisionBash.Runtime.Tests.csproj", "{D0CFD88C-202B-4E85-AC41-E8809AD8E997}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OriPrecisionGrapple.Runtime.Tests", "tests\OriPrecisionGrapple.Runtime.Tests\OriPrecisionGrapple.Runtime.Tests.csproj", "{D0CFD88C-202B-4E85-AC41-E8809AD8E997}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

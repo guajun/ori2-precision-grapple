@@ -23,7 +23,8 @@ $files = Get-FileHash -Algorithm SHA256 -LiteralPath $exe, $gameAssembly, $metad
     UnityVersion = (Get-Item -LiteralPath $exe).VersionInfo.FileVersion
     IsIl2Cpp = Test-Path -LiteralPath (Join-Path $gameRoot 'oriwotw_Data\il2cpp_data')
     BepInExInstalled = Test-Path -LiteralPath (Join-Path $gameRoot 'BepInEx\core\BepInEx.Unity.IL2CPP.dll')
-    ModInstalled = Test-Path -LiteralPath (Join-Path $gameRoot 'BepInEx\plugins\OriPrecisionBash\OriPrecisionBash.dll')
+    ModInstalled = Test-Path -LiteralPath (Join-Path $gameRoot 'BepInEx\plugins\OriPrecisionGrapple\OriPrecisionGrapple.dll')
+    LegacyModInstalled = Test-Path -LiteralPath (Join-Path $gameRoot 'BepInEx\plugins\OriPrecisionBash\OriPrecisionBash.dll')
     GameRunning = $null -ne (Get-Process -Name 'oriwotw' -ErrorAction SilentlyContinue)
 } | Format-List
 

@@ -7,9 +7,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$pluginProject = Join-Path $projectRoot 'src\OriPrecisionBash.Plugin\OriPrecisionBash.Plugin.csproj'
-$testProject = Join-Path $projectRoot 'tests\OriPrecisionBash.Core.Tests\OriPrecisionBash.Core.Tests.csproj'
-$runtimeTestProject = Join-Path $projectRoot 'tests\OriPrecisionBash.Runtime.Tests\OriPrecisionBash.Runtime.Tests.csproj'
+$pluginProject = Join-Path $projectRoot 'src\OriPrecisionGrapple.Plugin\OriPrecisionGrapple.Plugin.csproj'
+$testProject = Join-Path $projectRoot 'tests\OriPrecisionGrapple.Core.Tests\OriPrecisionGrapple.Core.Tests.csproj'
+$runtimeTestProject = Join-Path $projectRoot 'tests\OriPrecisionGrapple.Runtime.Tests\OriPrecisionGrapple.Runtime.Tests.csproj'
 
 & (Join-Path $PSScriptRoot 'bootstrap.ps1')
 dotnet build $pluginProject -c $Configuration --nologo

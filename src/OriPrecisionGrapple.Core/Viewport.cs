@@ -1,4 +1,4 @@
-namespace OriPrecisionBash.Core;
+namespace OriPrecisionGrapple.Core;
 
 public readonly struct Viewport
 {

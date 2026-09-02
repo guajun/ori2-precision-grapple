@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace OriPrecisionBash.Runtime;
+namespace OriPrecisionGrapple.Runtime;
 
 internal static class PhysicalMouse
 {

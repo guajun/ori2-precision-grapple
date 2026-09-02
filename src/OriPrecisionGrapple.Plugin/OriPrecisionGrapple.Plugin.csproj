@@ -1,13 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <AssemblyName>OriPrecisionBash</AssemblyName>
-    <RootNamespace>OriPrecisionBash</RootNamespace>
+    <AssemblyName>OriPrecisionGrapple</AssemblyName>
+    <RootNamespace>OriPrecisionGrapple</RootNamespace>
     <BepInExCoreDir Condition="'$(BepInExCoreDir)' == ''">$(MSBuildThisFileDirectory)..\..\vendor\bepinex\BepInEx\core</BepInExCoreDir>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OriPrecisionBash.Core\OriPrecisionBash.Core.csproj" />
+    <ProjectReference Include="..\OriPrecisionGrapple.Core\OriPrecisionGrapple.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

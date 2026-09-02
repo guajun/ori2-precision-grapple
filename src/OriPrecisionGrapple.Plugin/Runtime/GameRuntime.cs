@@ -1,8 +1,8 @@
 using BepInEx.Logging;
-using OriPrecisionBash.Core;
+using OriPrecisionGrapple.Core;
 using System.Reflection;
 
-namespace OriPrecisionBash.Runtime;
+namespace OriPrecisionGrapple.Runtime;
 
 internal sealed class GameRuntime
 {

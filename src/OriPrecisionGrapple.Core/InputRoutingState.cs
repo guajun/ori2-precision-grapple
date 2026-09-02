@@ -1,4 +1,4 @@
-namespace OriPrecisionBash.Core;
+namespace OriPrecisionGrapple.Core;
 
 /// <summary>
 /// Locks one action for the full duration of a physical right-button press.

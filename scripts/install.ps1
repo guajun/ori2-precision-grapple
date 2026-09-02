@@ -9,9 +9,13 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $gameRoot = [System.IO.Path]::GetFullPath($GameRoot)
 $expectedExe = Join-Path $gameRoot 'oriwotw.exe'
 $vendorRoot = Join-Path $projectRoot 'vendor\bepinex'
-$packageRoot = Join-Path $projectRoot 'artifacts\OriPrecisionBash\BepInEx\plugins\OriPrecisionBash'
+$packageRoot = Join-Path $projectRoot 'artifacts\OriPrecisionGrapple\BepInEx\plugins\OriPrecisionGrapple'
 $gameBepInEx = Join-Path $gameRoot 'BepInEx'
-$gamePluginRoot = Join-Path $gameBepInEx 'plugins\OriPrecisionBash'
+$gamePluginRoot = Join-Path $gameBepInEx 'plugins\OriPrecisionGrapple'
+$legacyPluginRoot = Join-Path $gameBepInEx 'plugins\OriPrecisionBash'
+$configRoot = Join-Path $gameBepInEx 'config'
+$configPath = Join-Path $configRoot 'io.github.guajun.ori2precisiongrapple.cfg'
+$legacyConfigPath = Join-Path $configRoot 'io.github.oriprecisionbash.cfg'
 
 if (Get-Process -Name 'oriwotw' -ErrorAction SilentlyContinue) {
     throw 'Ori is running. Close the game before installing the mod.'
@@ -41,9 +45,24 @@ if (-not $existingBepInEx) {
     }
 }
 
+New-Item -ItemType Directory -Path $configRoot -Force | Out-Null
+if (-not (Test-Path -LiteralPath $configPath) -and (Test-Path -LiteralPath $legacyConfigPath)) {
+    $legacyConfig = Get-Content -LiteralPath $legacyConfigPath -Raw
+    $migratedConfig = $legacyConfig.Replace('Ori Precision Bash', 'Ori Precision Grapple')
+    $migratedConfig = $migratedConfig.Replace('io.github.oriprecisionbash', 'io.github.guajun.ori2precisiongrapple')
+    Set-Content -LiteralPath $configPath -Value $migratedConfig -Encoding utf8NoBOM -NoNewline
+}
+
+if (Test-Path -LiteralPath $legacyPluginRoot -PathType Container) {
+    $backupRoot = Join-Path $gameRoot 'OriPrecisionGrapple.backup'
+    New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
+    $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+    Move-Item -LiteralPath $legacyPluginRoot -Destination (Join-Path $backupRoot "legacy-plugin-$timestamp")
+}
+
 New-Item -ItemType Directory -Path $gamePluginRoot -Force | Out-Null
 Copy-Item -Path (Join-Path $packageRoot '*') -Destination $gamePluginRoot -Force
 
-Write-Host 'Installed Ori Precision Bash without launching the game.'
+Write-Host 'Installed Ori Precision Grapple without launching the game.'
 Write-Host "Plugin path: $gamePluginRoot"
 Write-Host 'The first game launch must still generate BepInEx interop assemblies and validate the runtime patches.'

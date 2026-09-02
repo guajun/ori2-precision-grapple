@@ -1,6 +1,6 @@
 using BepInEx.Configuration;
 
-namespace OriPrecisionBash;
+namespace OriPrecisionGrapple;
 
 internal interface IRuntimeSettings
 {

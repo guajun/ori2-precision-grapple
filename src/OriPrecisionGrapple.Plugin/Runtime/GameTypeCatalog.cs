@@ -1,7 +1,7 @@
 using System.Reflection;
 using BepInEx;
 
-namespace OriPrecisionBash.Runtime;
+namespace OriPrecisionGrapple.Runtime;
 
 internal sealed class GameTypeCatalog
 {

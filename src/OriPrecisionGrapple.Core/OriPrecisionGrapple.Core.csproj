@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <AssemblyName>OriPrecisionBash.Core</AssemblyName>
-    <RootNamespace>OriPrecisionBash.Core</RootNamespace>
+    <AssemblyName>OriPrecisionGrapple.Core</AssemblyName>
+    <RootNamespace>OriPrecisionGrapple.Core</RootNamespace>
   </PropertyGroup>
 </Project>

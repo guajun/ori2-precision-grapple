@@ -1,13 +1,13 @@
 using BepInEx.Logging;
 using HarmonyLib;
-using OriPrecisionBash;
-using OriPrecisionBash.Runtime;
+using OriPrecisionGrapple;
+using OriPrecisionGrapple.Runtime;
 
 var rightButtonHeld = true;
 var settings = new FakeSettings();
-var log = new ManualLogSource("OriPrecisionBash.Runtime.Tests");
+var log = new ManualLogSource("OriPrecisionGrapple.Runtime.Tests");
 var runtime = new GameRuntime(settings, log, () => rightButtonHeld);
-var harmony = new Harmony("io.github.oriprecisionbash.runtime-tests");
+var harmony = new Harmony("io.github.guajun.ori2precisiongrapple.runtime-tests");
 var installer = new GamePatchInstaller(harmony, runtime, log);
 
 try

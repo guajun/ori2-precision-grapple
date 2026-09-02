@@ -1,6 +1,6 @@
-using OriPrecisionBash.Core;
+using OriPrecisionGrapple.Core;
 
-namespace OriPrecisionBash.Runtime;
+namespace OriPrecisionGrapple.Runtime;
 
 internal enum DebugMarkerKind
 {

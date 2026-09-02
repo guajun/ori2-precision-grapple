@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Reflection;
 
-namespace OriPrecisionBash.Runtime;
+namespace OriPrecisionGrapple.Runtime;
 
 internal static class ReflectionAccess
 {

@@ -2,7 +2,7 @@ using System.Reflection;
 using BepInEx.Logging;
 using HarmonyLib;
 
-namespace OriPrecisionBash.Runtime;
+namespace OriPrecisionGrapple.Runtime;
 
 internal sealed class GamePatchInstaller
 {

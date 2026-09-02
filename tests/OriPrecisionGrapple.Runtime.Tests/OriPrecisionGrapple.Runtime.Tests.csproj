@@ -2,13 +2,13 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
-    <AssemblyName>OriPrecisionBash.Runtime.Tests</AssemblyName>
-    <RootNamespace>OriPrecisionBash.Runtime.Tests</RootNamespace>
+    <AssemblyName>OriPrecisionGrapple.Runtime.Tests</AssemblyName>
+    <RootNamespace>OriPrecisionGrapple.Runtime.Tests</RootNamespace>
     <BepInExCoreDir Condition="'$(BepInExCoreDir)' == ''">$(MSBuildThisFileDirectory)..\..\vendor\bepinex\BepInEx\core</BepInExCoreDir>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\OriPrecisionBash.Plugin\OriPrecisionBash.Plugin.csproj" />
+    <ProjectReference Include="..\..\src\OriPrecisionGrapple.Plugin\OriPrecisionGrapple.Plugin.csproj" />
   </ItemGroup>
 
   <ItemGroup>

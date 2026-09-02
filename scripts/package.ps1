@@ -6,12 +6,12 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$pluginOutput = Join-Path $projectRoot "src\OriPrecisionBash.Plugin\bin\$Configuration\net6.0"
-$coreOutput = Join-Path $projectRoot "src\OriPrecisionBash.Core\bin\$Configuration\netstandard2.1"
-$packageRoot = Join-Path $projectRoot 'artifacts\OriPrecisionBash\BepInEx\plugins\OriPrecisionBash'
+$pluginOutput = Join-Path $projectRoot "src\OriPrecisionGrapple.Plugin\bin\$Configuration\net6.0"
+$coreOutput = Join-Path $projectRoot "src\OriPrecisionGrapple.Core\bin\$Configuration\netstandard2.1"
+$packageRoot = Join-Path $projectRoot 'artifacts\OriPrecisionGrapple\BepInEx\plugins\OriPrecisionGrapple'
 
-$pluginDll = Join-Path $pluginOutput 'OriPrecisionBash.dll'
-$coreDll = Join-Path $coreOutput 'OriPrecisionBash.Core.dll'
+$pluginDll = Join-Path $pluginOutput 'OriPrecisionGrapple.dll'
+$coreDll = Join-Path $coreOutput 'OriPrecisionGrapple.Core.dll'
 if (-not (Test-Path -LiteralPath $pluginDll) -or -not (Test-Path -LiteralPath $coreDll)) {
     throw 'Build outputs are missing. Run scripts/build.ps1 first.'
 }
