@@ -26,6 +26,14 @@ internal sealed class GameTypeCatalog
     public Type? GuiStyle { get; private init; }
     public Type? Texture2D { get; private init; }
     public Type? BashAttack { get; private init; }
+    public Type? GameObject { get; private init; }
+    public Type? UnityObject { get; private init; }
+    public Type? Resources { get; private init; }
+    public Type? GuiText { get; private init; }
+    public Type? Font { get; private init; }
+    public Type? Vector2 { get; private init; }
+    public Type? Vector3 { get; private init; }
+    public Type? TextAnchor { get; private init; }
 
     public static bool TryCreate(out GameTypeCatalog? catalog, out string error)
     {
@@ -79,6 +87,14 @@ internal sealed class GameTypeCatalog
             GuiStyle = FindType("UnityEngine.GUIStyle"),
             Texture2D = FindType("UnityEngine.Texture2D"),
             BashAttack = FindType("SeinBashAttack"),
+            GameObject = FindType("UnityEngine.GameObject"),
+            UnityObject = FindType("UnityEngine.Object"),
+            Resources = FindType("UnityEngine.Resources"),
+            GuiText = FindType("UnityEngine.GUIText"),
+            Font = FindType("UnityEngine.Font"),
+            Vector2 = FindType("UnityEngine.Vector2"),
+            Vector3 = FindType("UnityEngine.Vector3"),
+            TextAnchor = FindType("UnityEngine.TextAnchor"),
         };
         error = string.Empty;
         return true;
@@ -111,6 +127,7 @@ internal sealed class GameTypeCatalog
         TryLoadAssembly("Assembly-CSharp");
         TryLoadAssembly("UnityEngine.CoreModule");
         TryLoadAssembly("UnityEngine.IMGUIModule");
+        TryLoadAssembly("UnityEngine.TextRenderingModule");
     }
 
     private static void TryLoadAssembly(string assemblyName)

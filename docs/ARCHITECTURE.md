@@ -30,10 +30,13 @@ an error to `BepInEx/LogOutput.log`.
 
 ## Diagnostics
 
-`GameController.OnGUI` renders a read-only condition HUD after the game's own
-GUI. Grapple candidates are collected from `CalculateAttackableCost`; the Bash
-candidate is captured from `SeinBashAttack.FindClosestAttackHandler`. These
-observation patches do not alter method arguments or results.
+The first `GameController.OnGUI` callback creates persistent Unity `GUIText`
+objects for a read-only condition HUD and screen markers; later callbacks only
+update their text, color and normalized screen positions. This avoids Ori's
+non-visible IMGUI command path. Grapple candidates are collected from
+`CalculateAttackableCost`; the Bash candidate is captured from
+`SeinBashAttack.FindClosestAttackHandler`. These observation patches do not
+alter method arguments or results.
 
 ## Why runtime reflection
 

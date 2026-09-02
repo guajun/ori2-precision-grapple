@@ -47,15 +47,7 @@ internal sealed class GameRuntime
     public void Attach(GameTypeCatalog types)
     {
         _types = types;
-        _debugOverlay = DebugOverlayRenderer.TryCreate(types, _settings, _log, out var overlayStatus);
-        if (_debugOverlay is null)
-        {
-            _log.LogWarning($"Diagnostics overlay renderer unavailable: {overlayStatus}");
-        }
-        else
-        {
-            _log.LogInfo($"Diagnostics overlay renderer ready: {overlayStatus}");
-        }
+        _log.LogInfo("Diagnostics screen renderer will initialize on the first GameController.OnGUI callback.");
     }
 
     public void BeginTargetSearch(object spiritLeash)
@@ -128,13 +120,26 @@ internal sealed class GameRuntime
             _log.LogInfo("GameController.OnGUI diagnostics callback reached.");
         }
 
-        if (_debugOverlay is null || _snapshotFailureLogged)
+        if (_snapshotFailureLogged || _types is null)
         {
             return;
         }
 
         try
         {
+            if (_debugOverlay is null)
+            {
+                _debugOverlay = DebugOverlayRenderer.TryCreate(_types, _settings, _log, out var status);
+                if (_debugOverlay is null)
+                {
+                    _snapshotFailureLogged = true;
+                    _log.LogError($"Diagnostics screen renderer unavailable: {status}");
+                    return;
+                }
+
+                _log.LogInfo($"Diagnostics screen renderer ready: {status}");
+            }
+
             _debugOverlay.Draw(BuildDebugSnapshot());
         }
         catch (Exception exception)

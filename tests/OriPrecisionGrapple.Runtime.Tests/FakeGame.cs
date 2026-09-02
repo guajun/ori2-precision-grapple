@@ -1,5 +1,78 @@
 namespace UnityEngine
 {
+    public class Object
+    {
+        public static void DontDestroyOnLoad(Object target)
+        {
+        }
+    }
+
+    public class Component : Object
+    {
+        public bool enabled { get; set; } = true;
+    }
+
+    public sealed class Transform : Component
+    {
+        public Vector3 position { get; set; }
+
+        public void SetParent(Transform parent, bool worldPositionStays)
+        {
+        }
+    }
+
+    public sealed class GameObject : Object
+    {
+        public GameObject(string name)
+        {
+            this.name = name;
+        }
+
+        public string name { get; }
+
+        public Transform transform { get; } = new();
+
+        public T AddComponent<T>() where T : new() => new();
+
+        public void SetActive(bool active)
+        {
+        }
+    }
+
+    public sealed class Font : Object
+    {
+    }
+
+    public static class Resources
+    {
+        public static T GetBuiltinResource<T>(string path) where T : new() => new();
+    }
+
+    public enum TextAnchor
+    {
+        UpperLeft,
+        MiddleCenter,
+    }
+
+    public sealed class GUIText : Component
+    {
+        public GUIText()
+        {
+            Instances.Add(this);
+        }
+
+        public static List<GUIText> Instances { get; } = new();
+
+        public string text { get; set; } = string.Empty;
+        public int fontSize { get; set; }
+        public Font? font { get; set; }
+        public TextAnchor anchor { get; set; }
+        public Color color { get; set; }
+        public Vector2 pixelOffset { get; set; }
+        public bool richText { get; set; }
+        public float lineSpacing { get; set; }
+    }
+
     public struct Rect
     {
         public Rect(float x, float y, float width, float height)

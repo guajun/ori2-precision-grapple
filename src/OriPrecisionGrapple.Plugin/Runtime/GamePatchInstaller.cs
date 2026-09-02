@@ -59,7 +59,7 @@ internal sealed class GamePatchInstaller
                     postfix: nameof(PatchCallbacks.BashTargetPostfix));
             }
 
-            if (types.GameController is not null && types.Gui is not null && types.Rect is not null && types.Color is not null)
+            if (types.GameController is not null)
             {
                 var onGui = GameTypeCatalog.FindMethod(types.GameController, "OnGUI", 0);
                 if (onGui is null)
