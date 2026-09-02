@@ -11,13 +11,17 @@ public sealed class Plugin : BasePlugin
 {
     public const string PluginGuid = "io.github.guajun.ori2precisiongrapple";
     public const string PluginName = "Ori Precision Grapple";
-    public const string PluginVersion = "0.4.0";
+    public const string PluginVersion = "0.5.0";
+
+    private Harmony? _harmony;
+    private GameRuntime? _runtime;
 
     public override void Load()
     {
         var settings = new ModSettings(Config);
-        var runtime = new GameRuntime(settings, Log);
-        var installer = new GamePatchInstaller(new Harmony(PluginGuid), runtime, Log);
+        _runtime = new GameRuntime(settings, Log);
+        _harmony = new Harmony(PluginGuid);
+        var installer = new GamePatchInstaller(_harmony, _runtime, Log);
 
         if (!installer.TryInstall())
         {
@@ -27,5 +31,14 @@ public sealed class Plugin : BasePlugin
         }
 
         Log.LogInfo($"{PluginName} {PluginVersion} loaded. Right-click routing is active.");
+    }
+
+    public override bool Unload()
+    {
+        _runtime?.Dispose();
+        _runtime = null;
+        _harmony?.UnpatchSelf();
+        _harmony = null;
+        return true;
     }
 }

@@ -11,6 +11,7 @@ internal interface IRuntimeSettings
     bool DebugLogging { get; }
     bool ShowOverlay { get; }
     bool ShowWorldMarkers { get; }
+    bool ExternalMonitorEnabled { get; }
 }
 
 internal sealed class ModSettings : IRuntimeSettings
@@ -22,6 +23,7 @@ internal sealed class ModSettings : IRuntimeSettings
     private readonly ConfigEntry<bool> _debugLogging;
     private readonly ConfigEntry<bool> _showOverlay;
     private readonly ConfigEntry<bool> _showWorldMarkers;
+    private readonly ConfigEntry<bool> _externalMonitorEnabled;
 
     public ModSettings(ConfigFile config)
     {
@@ -53,13 +55,18 @@ internal sealed class ModSettings : IRuntimeSettings
         _showOverlay = config.Bind(
             "Diagnostics",
             "ShowOverlay",
-            true,
-            "Show live Grapple and Bash condition diagnostics in-game.");
+            false,
+            "Show the experimental in-game diagnostics overlay.");
         _showWorldMarkers = config.Bind(
             "Diagnostics",
             "ShowWorldMarkers",
             true,
             "Mark the cursor, Grapple candidates, selected target, Bash target and precision radius.");
+        _externalMonitorEnabled = config.Bind(
+            "Diagnostics",
+            "ExternalMonitorEnabled",
+            true,
+            "Publish live diagnostics to OriPrecisionGrapple.Monitor over a local named pipe.");
     }
 
     public bool Enabled => _enabled.Value;
@@ -75,4 +82,6 @@ internal sealed class ModSettings : IRuntimeSettings
     public bool ShowOverlay => _showOverlay.Value;
 
     public bool ShowWorldMarkers => _showWorldMarkers.Value;
+
+    public bool ExternalMonitorEnabled => _externalMonitorEnabled.Value;
 }

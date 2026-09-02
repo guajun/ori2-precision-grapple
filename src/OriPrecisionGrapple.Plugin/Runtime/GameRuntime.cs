@@ -1,10 +1,11 @@
 using BepInEx.Logging;
 using OriPrecisionGrapple.Core;
+using OriPrecisionGrapple.Core.Diagnostics;
 using System.Reflection;
 
 namespace OriPrecisionGrapple.Runtime;
 
-internal sealed class GameRuntime
+internal sealed class GameRuntime : IDisposable
 {
     private const int MaxTrackedGrappleCandidates = 24;
 
@@ -33,6 +34,7 @@ internal sealed class GameRuntime
     private long _targetSearchCompletedAt;
     private bool _snapshotFailureLogged;
     private bool _overlayCallbackLogged;
+    private DiagnosticPipeServer? _diagnosticPipe;
 
     public GameRuntime(
         IRuntimeSettings settings,
@@ -47,7 +49,22 @@ internal sealed class GameRuntime
     public void Attach(GameTypeCatalog types)
     {
         _types = types;
-        _log.LogInfo("Diagnostics screen renderer will initialize on the first GameController.OnGUI callback.");
+        if (_settings.ExternalMonitorEnabled)
+        {
+            _diagnosticPipe = new DiagnosticPipeServer(_log);
+            _log.LogInfo($"External diagnostics pipe '{DiagnosticProtocol.PipeName}' is ready for the monitor.");
+        }
+
+        if (_settings.ShowOverlay)
+        {
+            _log.LogInfo("Experimental in-game diagnostics renderer will initialize on the first GameController.OnGUI callback.");
+        }
+    }
+
+    public void Dispose()
+    {
+        _diagnosticPipe?.Dispose();
+        _diagnosticPipe = null;
     }
 
     public void BeginTargetSearch(object spiritLeash)
@@ -109,7 +126,7 @@ internal sealed class GameRuntime
 
     public void DrawDiagnostics()
     {
-        if (!_settings.ShowOverlay)
+        if (!_settings.ShowOverlay && !_settings.ExternalMonitorEnabled)
         {
             return;
         }
@@ -127,6 +144,13 @@ internal sealed class GameRuntime
 
         try
         {
+            var snapshot = BuildDebugSnapshot();
+            _diagnosticPipe?.Publish(ToDiagnosticFrame(snapshot));
+            if (!_settings.ShowOverlay)
+            {
+                return;
+            }
+
             if (_debugOverlay is null)
             {
                 _debugOverlay = DebugOverlayRenderer.TryCreate(_types, _settings, _log, out var status);
@@ -140,7 +164,7 @@ internal sealed class GameRuntime
                 _log.LogInfo($"Diagnostics screen renderer ready: {status}");
             }
 
-            _debugOverlay.Draw(BuildDebugSnapshot());
+            _debugOverlay.Draw(snapshot);
         }
         catch (Exception exception)
         {
@@ -148,6 +172,26 @@ internal sealed class GameRuntime
             _log.LogError($"Diagnostics snapshot disabled after a read failure: {exception}");
         }
     }
+
+    private static DiagnosticFrame ToDiagnosticFrame(DebugSnapshot snapshot) => new()
+    {
+        ScreenWidth = snapshot.ScreenWidth,
+        ScreenHeight = snapshot.ScreenHeight,
+        CursorX = snapshot.Cursor.X,
+        CursorY = snapshot.Cursor.Y,
+        EffectiveRadius = snapshot.EffectiveRadius,
+        PrecisionHit = snapshot.PrecisionHit,
+        GrappleTargetX = snapshot.GrappleTarget?.X,
+        GrappleTargetY = snapshot.GrappleTarget?.Y,
+        Lines = snapshot.Lines.ToArray(),
+        Markers = snapshot.Markers.Select(marker => new DiagnosticMarker
+        {
+            Label = marker.Label,
+            Kind = marker.Kind.ToString(),
+            X = marker.Point.X,
+            Y = marker.Point.Y,
+        }).ToArray(),
+    };
 
     public bool TryGetMouseFacing(out bool faceLeft)
     {

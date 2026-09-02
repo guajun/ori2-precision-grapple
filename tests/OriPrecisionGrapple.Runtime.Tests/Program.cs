@@ -1,7 +1,11 @@
 using BepInEx.Logging;
 using HarmonyLib;
+using OriPrecisionGrapple.Core.Diagnostics;
 using OriPrecisionGrapple;
 using OriPrecisionGrapple.Runtime;
+using System.IO.Pipes;
+using System.Text;
+using System.Text.Json;
 
 var rightButtonHeld = true;
 var settings = new FakeSettings();
@@ -12,6 +16,30 @@ var installer = new GamePatchInstaller(harmony, runtime, log);
 
 try
 {
+    using (var pipeServer = new DiagnosticPipeServer(log))
+    await using (var pipeClient = new NamedPipeClientStream(
+        ".",
+        DiagnosticProtocol.PipeName,
+        PipeDirection.In,
+        PipeOptions.Asynchronous))
+    {
+        await pipeClient.ConnectAsync(3000);
+        pipeServer.Publish(new DiagnosticFrame
+        {
+            ScreenWidth = 1920,
+            ScreenHeight = 1080,
+            Lines = new[] { "CanLeash YES" },
+            Markers = new[] { new DiagnosticMarker { Label = "G*", Kind = "GrappleTarget", X = 100, Y = 200 } },
+        });
+        using var reader = new StreamReader(pipeClient, Encoding.UTF8, false, 4096, true);
+        using var timeout = new CancellationTokenSource(3000);
+        var line = await reader.ReadLineAsync().WaitAsync(timeout.Token);
+        var received = JsonSerializer.Deserialize<DiagnosticFrame>(line!);
+        True(received is not null, "diagnostic pipe returns a JSON frame");
+        True(received!.Sequence > 0, "diagnostic pipe assigns a frame sequence");
+        True(received.Markers.Single().Label == "G*", "diagnostic pipe preserves marker data");
+    }
+
     True(installer.TryInstall(), "runtime patches install against the fake game API");
 
     var leash = new SeinSpiritLeashAbility();
@@ -87,4 +115,5 @@ internal sealed class FakeSettings : IRuntimeSettings
     public bool DebugLogging => false;
     public bool ShowOverlay => true;
     public bool ShowWorldMarkers => true;
+    public bool ExternalMonitorEnabled => false;
 }

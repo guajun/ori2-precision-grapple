@@ -30,10 +30,11 @@ an error to `BepInEx/LogOutput.log`.
 
 ## Diagnostics
 
-The first `GameController.OnGUI` callback creates a persistent Unity
-`ScreenSpaceOverlay` Canvas with an `Image` panel and pooled `Text` components;
-later callbacks only update their content, colors and pixel positions. This
-avoids Ori's non-visible IMGUI and legacy GUIText paths. Grapple candidates are collected from
+The `GameController.OnGUI` callback builds a snapshot and publishes it through a
+local named pipe. The external WinForms monitor consumes only the latest frame,
+draws a scaled screen map, and displays the full condition chain. A background
+pipe task performs all waiting and writes, so the Unity thread never blocks.
+Grapple candidates are collected from
 `CalculateAttackableCost`; the Bash candidate is captured from
 `SeinBashAttack.FindClosestAttackHandler`. These observation patches do not
 alter method arguments or results.

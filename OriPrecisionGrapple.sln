@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -14,6 +14,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OriPrecisionGrapple.Core.Tests", "tests\OriPrecisionGrapple.Core.Tests\OriPrecisionGrapple.Core.Tests.csproj", "{145028F6-9011-4CB7-8438-874B5E6AD5BA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OriPrecisionGrapple.Runtime.Tests", "tests\OriPrecisionGrapple.Runtime.Tests\OriPrecisionGrapple.Runtime.Tests.csproj", "{D0CFD88C-202B-4E85-AC41-E8809AD8E997}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OriPrecisionGrapple.Monitor", "src\OriPrecisionGrapple.Monitor\OriPrecisionGrapple.Monitor.csproj", "{2ACAFF3F-70C8-48ED-99B0-A3AA41E51B8F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -40,11 +42,16 @@ Global
 		{D0CFD88C-202B-4E85-AC41-E8809AD8E997}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D0CFD88C-202B-4E85-AC41-E8809AD8E997}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D0CFD88C-202B-4E85-AC41-E8809AD8E997}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2ACAFF3F-70C8-48ED-99B0-A3AA41E51B8F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2ACAFF3F-70C8-48ED-99B0-A3AA41E51B8F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2ACAFF3F-70C8-48ED-99B0-A3AA41E51B8F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2ACAFF3F-70C8-48ED-99B0-A3AA41E51B8F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{604AAE7B-0BCF-488E-8A41-D2A2A6D64800} = {E3C9BA5A-83A9-4981-B862-A23B940D18CA}
 		{2446AE9D-B84A-4D79-A563-5560E1670F5E} = {E3C9BA5A-83A9-4981-B862-A23B940D18CA}
 		{145028F6-9011-4CB7-8438-874B5E6AD5BA} = {DADBAFF0-3133-46FE-8F51-65A0E67F4089}
 		{D0CFD88C-202B-4E85-AC41-E8809AD8E997} = {DADBAFF0-3133-46FE-8F51-65A0E67F4089}
+		{2ACAFF3F-70C8-48ED-99B0-A3AA41E51B8F} = {E3C9BA5A-83A9-4981-B862-A23B940D18CA}
 	EndGlobalSection
 EndGlobal

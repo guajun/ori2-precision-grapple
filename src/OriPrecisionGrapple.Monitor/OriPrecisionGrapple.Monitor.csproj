@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>OriPrecisionGrapple.Monitor</AssemblyName>
+    <RootNamespace>OriPrecisionGrapple.Monitor</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OriPrecisionGrapple.Core\OriPrecisionGrapple.Core.csproj" />
+  </ItemGroup>
+</Project>
