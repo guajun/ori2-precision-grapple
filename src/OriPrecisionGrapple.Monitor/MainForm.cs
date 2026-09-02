@@ -56,8 +56,6 @@ internal sealed class MainForm : Form
         {
             Dock = DockStyle.Fill,
             FixedPanel = FixedPanel.Panel2,
-            Panel2MinSize = 460,
-            SplitterDistance = 720,
         };
         split.Panel1.Controls.Add(_screenMap);
         split.Panel2.Controls.Add(_details);
@@ -69,6 +67,9 @@ internal sealed class MainForm : Form
         Controls.Add(split);
         Controls.Add(toolbar);
         Controls.Add(status);
+        split.Panel1MinSize = 320;
+        split.Panel2MinSize = 420;
+        split.SplitterDistance = Math.Max(split.Panel1MinSize, split.Width - 480);
         Shown += OnShown;
         FormClosed += (_, _) => _cancellation.Cancel();
     }
@@ -102,6 +103,10 @@ internal sealed class MainForm : Form
             return;
         }
 
-        BeginInvoke(() => _connectionStatus.Text = status);
+        BeginInvoke(() =>
+        {
+            _connectionStatus.Text = status;
+            Text = $"Ori Precision Grapple Monitor - {status}";
+        });
     }
 }

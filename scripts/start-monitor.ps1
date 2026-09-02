@@ -13,4 +13,10 @@ if (-not (Test-Path -LiteralPath $monitor -PathType Leaf)) {
     throw "Monitor executable was not built: $monitor"
 }
 
-Start-Process -FilePath $monitor -WorkingDirectory (Split-Path -Parent $monitor)
+$process = Start-Process -FilePath $monitor -WorkingDirectory (Split-Path -Parent $monitor) -PassThru
+Start-Sleep -Milliseconds 750
+if ($process.HasExited) {
+    throw "Monitor exited during startup with code $($process.ExitCode). Check the Windows Application event log."
+}
+
+Write-Host "Monitor started (PID $($process.Id))."
