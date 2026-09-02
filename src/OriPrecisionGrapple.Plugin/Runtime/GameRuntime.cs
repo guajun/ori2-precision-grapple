@@ -35,6 +35,7 @@ internal sealed class GameRuntime : IDisposable
     private bool _snapshotFailureLogged;
     private bool _overlayCallbackLogged;
     private DiagnosticPipeServer? _diagnosticPipe;
+    private bool _diagnosticUpdateLogged;
 
     public GameRuntime(
         IRuntimeSettings settings,
@@ -126,7 +127,7 @@ internal sealed class GameRuntime : IDisposable
 
     public void DrawDiagnostics()
     {
-        if (!_settings.ShowOverlay && !_settings.ExternalMonitorEnabled)
+        if (!_settings.ShowOverlay)
         {
             return;
         }
@@ -145,12 +146,6 @@ internal sealed class GameRuntime : IDisposable
         try
         {
             var snapshot = BuildDebugSnapshot();
-            _diagnosticPipe?.Publish(ToDiagnosticFrame(snapshot));
-            if (!_settings.ShowOverlay)
-            {
-                return;
-            }
-
             if (_debugOverlay is null)
             {
                 _debugOverlay = DebugOverlayRenderer.TryCreate(_types, _settings, _log, out var status);
@@ -170,6 +165,30 @@ internal sealed class GameRuntime : IDisposable
         {
             _snapshotFailureLogged = true;
             _log.LogError($"Diagnostics snapshot disabled after a read failure: {exception}");
+        }
+    }
+
+    public void UpdateDiagnostics()
+    {
+        if (!_settings.ExternalMonitorEnabled || _diagnosticPipe is null || _snapshotFailureLogged)
+        {
+            return;
+        }
+
+        if (!_diagnosticUpdateLogged)
+        {
+            _diagnosticUpdateLogged = true;
+            _log.LogInfo("External diagnostics are publishing on the GameController.Update tick.");
+        }
+
+        try
+        {
+            _diagnosticPipe.Publish(ToDiagnosticFrame(BuildDebugSnapshot()));
+        }
+        catch (Exception exception)
+        {
+            _snapshotFailureLogged = true;
+            _log.LogError($"External diagnostics publishing disabled after a snapshot failure: {exception}");
         }
     }
 

@@ -72,6 +72,17 @@ custom rendering pipeline.
 The monitor may start before or after Ori and reconnects automatically. The
 experimental in-game overlay is disabled by default.
 
+The transparent click-through overlay follows the Ori client area and supports
+windowed and borderless fullscreen modes. A true exclusive-fullscreen swap
+chain can cover all external top-level windows; for reliable overlay rendering,
+set these Steam launch options for this Unity 2018 game:
+
+```text
+-popupwindow -screen-fullscreen 0
+```
+
+Optionally add `-screen-width 1920 -screen-height 1080` for a fixed resolution.
+
 ## Safety
 
 Back up `%LOCALAPPDATA%\Ori and the Will of The Wisps` before gameplay testing.

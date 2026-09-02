@@ -39,6 +39,11 @@ Grapple candidates are collected from
 `SeinBashAttack.FindClosestAttackHandler`. These observation patches do not
 alter method arguments or results.
 
+The monitor owns a color-keyed, click-through, no-activate top-level window. It
+tracks Ori's Win32 client rectangle and only becomes visible while Ori is the
+foreground window. Incoming frames are coalesced in a one-frame UI slot, so a
+slow paint drops stale frames instead of accumulating latency.
+
 ## Why runtime reflection
 
 The game is IL2CPP and BepInEx creates the managed interop assemblies on its

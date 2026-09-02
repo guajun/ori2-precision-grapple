@@ -1,5 +1,4 @@
 using System.IO.Pipes;
-using System.Text;
 using System.Text.Json;
 using BepInEx.Logging;
 using OriPrecisionGrapple.Core.Diagnostics;
@@ -10,8 +9,9 @@ internal sealed class DiagnosticPipeServer : IDisposable
 {
     private readonly ManualLogSource _log;
     private readonly CancellationTokenSource _cancellation = new();
+    private readonly SemaphoreSlim _frameReady = new(0, 1);
     private readonly Task _worker;
-    private string? _latestFrame;
+    private DiagnosticFrame? _latestFrame;
     private long _latestSequence;
     private bool _connectedLogged;
 
@@ -25,8 +25,11 @@ internal sealed class DiagnosticPipeServer : IDisposable
     {
         frame.Sequence = Interlocked.Increment(ref _latestSequence);
         frame.TimestampUnixMilliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var json = JsonSerializer.Serialize(frame);
-        Volatile.Write(ref _latestFrame, json);
+        Volatile.Write(ref _latestFrame, frame);
+        if (_frameReady.CurrentCount == 0)
+        {
+            _frameReady.Release();
+        }
     }
 
     public void Dispose()
@@ -43,6 +46,7 @@ internal sealed class DiagnosticPipeServer : IDisposable
         }
 
         _cancellation.Dispose();
+        _frameReady.Dispose();
     }
 
     private async Task RunAsync(CancellationToken cancellationToken)
@@ -65,28 +69,19 @@ internal sealed class DiagnosticPipeServer : IDisposable
                     _log.LogInfo($"External diagnostics monitor connected to pipe '{DiagnosticProtocol.PipeName}'.");
                 }
 
-                await using var writer = new StreamWriter(
-                    pipe,
-                    new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
-                    bufferSize: 4096,
-                    leaveOpen: true)
+                await using var writer = new StreamWriter(pipe, leaveOpen: true)
                 {
                     AutoFlush = true,
                 };
 
-                long sentSequence = 0;
                 while (pipe.IsConnected && !cancellationToken.IsCancellationRequested)
                 {
-                    var sequence = Volatile.Read(ref _latestSequence);
+                    await _frameReady.WaitAsync(cancellationToken).ConfigureAwait(false);
                     var frame = Volatile.Read(ref _latestFrame);
-                    if (frame is not null && sequence != sentSequence)
+                    if (frame is not null)
                     {
-                        await writer.WriteLineAsync(frame).ConfigureAwait(false);
-                        sentSequence = sequence;
+                        await writer.WriteLineAsync(JsonSerializer.Serialize(frame)).ConfigureAwait(false);
                     }
-
-                    await Task.Delay(DiagnosticProtocol.PublishIntervalMilliseconds, cancellationToken)
-                        .ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

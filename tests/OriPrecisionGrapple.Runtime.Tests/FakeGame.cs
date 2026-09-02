@@ -253,6 +253,11 @@ namespace UnityEngine.UI
 public sealed class GameController
 {
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public void Update()
+    {
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void OnGUI()
     {
     }

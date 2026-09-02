@@ -6,9 +6,14 @@ internal sealed class MainForm : Form
 {
     private readonly CancellationTokenSource _cancellation = new();
     private readonly ScreenMapControl _screenMap = new();
+    private readonly OverlayForm _overlay = new();
     private readonly RichTextBox _details = new();
     private readonly ToolStripStatusLabel _connectionStatus = new("Waiting for Ori...");
     private readonly ToolStripStatusLabel _frameStatus = new() { Spring = true, TextAlign = ContentAlignment.MiddleRight };
+    private DiagnosticFrame? _pendingFrame;
+    private int _frameDispatchQueued;
+    private long _previousFrameTimestamp;
+    private double _smoothedRate;
 
     public MainForm()
     {
@@ -42,6 +47,24 @@ internal sealed class MainForm : Form
         };
         alwaysOnTop.CheckedChanged += (_, _) => TopMost = alwaysOnTop.Checked;
         toolbar.Controls.Add(alwaysOnTop);
+        var overlayEnabled = new CheckBox
+        {
+            AutoSize = true,
+            Checked = true,
+            Text = "Overlay on Ori",
+            Margin = new Padding(18, 2, 0, 0),
+        };
+        overlayEnabled.CheckedChanged += (_, _) => _overlay.OverlayEnabled = overlayEnabled.Checked;
+        toolbar.Controls.Add(overlayEnabled);
+        var overlayHud = new CheckBox
+        {
+            AutoSize = true,
+            Checked = true,
+            Text = "Overlay HUD",
+            Margin = new Padding(18, 2, 0, 0),
+        };
+        overlayHud.CheckedChanged += (_, _) => _overlay.ShowHud = overlayHud.Checked;
+        toolbar.Controls.Add(overlayHud);
 
         _details.BackColor = Color.FromArgb(22, 25, 28);
         _details.BorderStyle = BorderStyle.None;
@@ -71,11 +94,16 @@ internal sealed class MainForm : Form
         split.Panel2MinSize = 420;
         split.SplitterDistance = Math.Max(split.Panel1MinSize, split.Width - 480);
         Shown += OnShown;
-        FormClosed += (_, _) => _cancellation.Cancel();
+        FormClosed += (_, _) =>
+        {
+            _cancellation.Cancel();
+            _overlay.Close();
+        };
     }
 
     private async void OnShown(object? sender, EventArgs eventArgs)
     {
+        _overlay.Show();
         var client = new PipeMonitorClient();
         await client.RunAsync(ReceiveFrame, SetConnectionStatus, _cancellation.Token);
     }
@@ -87,13 +115,40 @@ internal sealed class MainForm : Form
             return;
         }
 
-        BeginInvoke(() =>
+        Interlocked.Exchange(ref _pendingFrame, frame);
+        if (Interlocked.Exchange(ref _frameDispatchQueued, 1) == 0)
         {
-            _screenMap.Frame = frame;
-            _details.Text = string.Join(Environment.NewLine, frame.Lines);
-            var age = Math.Max(0, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - frame.TimestampUnixMilliseconds);
-            _frameStatus.Text = $"Frame #{frame.Sequence}  |  {frame.ScreenWidth}x{frame.ScreenHeight}  |  {age} ms";
-        });
+            BeginInvoke(ApplyPendingFrame);
+        }
+    }
+
+    private void ApplyPendingFrame()
+    {
+        var frame = Interlocked.Exchange(ref _pendingFrame, null);
+        Volatile.Write(ref _frameDispatchQueued, 0);
+        if (frame is null)
+        {
+            return;
+        }
+
+        _screenMap.Frame = frame;
+        _overlay.Frame = frame;
+        _details.Text = string.Join(Environment.NewLine, frame.Lines);
+        var age = Math.Max(0, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - frame.TimestampUnixMilliseconds);
+        if (_previousFrameTimestamp > 0 && frame.TimestampUnixMilliseconds > _previousFrameTimestamp)
+        {
+            var instantRate = 1000.0 / (frame.TimestampUnixMilliseconds - _previousFrameTimestamp);
+            _smoothedRate = _smoothedRate <= 0 ? instantRate : (_smoothedRate * 0.85) + (instantRate * 0.15);
+        }
+
+        _previousFrameTimestamp = frame.TimestampUnixMilliseconds;
+        _frameStatus.Text = $"Frame #{frame.Sequence}  |  {_smoothedRate:F1} Hz  |  {frame.ScreenWidth}x{frame.ScreenHeight}  |  {age} ms";
+        Text = $"Ori Precision Grapple Monitor - Connected - {_smoothedRate:F1} Hz";
+
+        if (Volatile.Read(ref _pendingFrame) is not null && Interlocked.Exchange(ref _frameDispatchQueued, 1) == 0)
+        {
+            BeginInvoke(ApplyPendingFrame);
+        }
     }
 
     private void SetConnectionStatus(string status)

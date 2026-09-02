@@ -61,6 +61,17 @@ internal sealed class GamePatchInstaller
 
             if (types.GameController is not null)
             {
+                var update = GameTypeCatalog.FindMethod(types.GameController, "Update", 0);
+                if (update is null)
+                {
+                    _log.LogWarning("External diagnostics tick unavailable: GameController.Update was not found.");
+                }
+                else
+                {
+                    Patch(update, null, nameof(PatchCallbacks.DiagnosticUpdatePostfix));
+                    _log.LogInfo("External diagnostics tick installed on GameController.Update.");
+                }
+
                 var onGui = GameTypeCatalog.FindMethod(types.GameController, "OnGUI", 0);
                 if (onGui is null)
                 {
@@ -149,6 +160,8 @@ public static class PatchCallbacks
         _runtime?.CaptureBashTarget(__instance, __result);
 
     public static void DebugOverlayPostfix() => _runtime?.DrawDiagnostics();
+
+    public static void DiagnosticUpdatePostfix() => _runtime?.UpdateDiagnostics();
 
     public static bool FaceLeftPrefix(ref bool __result)
     {
