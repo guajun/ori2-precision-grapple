@@ -12,13 +12,22 @@ namespace UnityEngine
         public bool enabled { get; set; } = true;
     }
 
-    public sealed class Transform : Component
+    public class Transform : Component
     {
         public Vector3 position { get; set; }
 
         public void SetParent(Transform parent, bool worldPositionStays)
         {
         }
+    }
+
+    public sealed class RectTransform : Transform
+    {
+        public Vector2 anchorMin { get; set; }
+        public Vector2 anchorMax { get; set; }
+        public Vector2 pivot { get; set; }
+        public Vector2 anchoredPosition { get; set; }
+        public Vector2 sizeDelta { get; set; }
     }
 
     public sealed class GameObject : Object
@@ -52,6 +61,31 @@ namespace UnityEngine
     {
         UpperLeft,
         MiddleCenter,
+    }
+
+    public enum RenderMode
+    {
+        ScreenSpaceOverlay,
+    }
+
+    public enum HorizontalWrapMode
+    {
+        Wrap,
+        Overflow,
+    }
+
+    public enum VerticalWrapMode
+    {
+        Truncate,
+        Overflow,
+    }
+
+    public sealed class Canvas : Component
+    {
+        public RenderMode renderMode { get; set; }
+        public bool overrideSorting { get; set; }
+        public int sortingOrder { get; set; }
+        public bool pixelPerfect { get; set; }
     }
 
     public sealed class GUIText : Component
@@ -180,6 +214,39 @@ namespace UnityEngine
     {
         public static int width => 1920;
         public static int height => 1080;
+    }
+}
+
+namespace UnityEngine.UI
+{
+    public class Graphic : UnityEngine.Component
+    {
+        public UnityEngine.RectTransform rectTransform { get; } = new();
+        public UnityEngine.Color color { get; set; }
+        public bool raycastTarget { get; set; }
+    }
+
+    public sealed class Image : Graphic
+    {
+    }
+
+    public sealed class Text : Graphic
+    {
+        public Text()
+        {
+            Instances.Add(this);
+        }
+
+        public static List<Text> Instances { get; } = new();
+
+        public UnityEngine.Font? font { get; set; }
+        public string text { get; set; } = string.Empty;
+        public int fontSize { get; set; }
+        public UnityEngine.TextAnchor alignment { get; set; }
+        public bool supportRichText { get; set; }
+        public float lineSpacing { get; set; }
+        public UnityEngine.HorizontalWrapMode horizontalOverflow { get; set; }
+        public UnityEngine.VerticalWrapMode verticalOverflow { get; set; }
     }
 }
 

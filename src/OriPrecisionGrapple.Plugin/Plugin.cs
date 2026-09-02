@@ -11,7 +11,7 @@ public sealed class Plugin : BasePlugin
 {
     public const string PluginGuid = "io.github.guajun.ori2precisiongrapple";
     public const string PluginName = "Ori Precision Grapple";
-    public const string PluginVersion = "0.3.0";
+    public const string PluginVersion = "0.4.0";
 
     public override void Load()
     {

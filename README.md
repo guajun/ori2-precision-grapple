@@ -17,7 +17,7 @@ changed.
 - Runtime IL2CPP patch layer: implemented using generated-type discovery and
   exercised against a fake Ori API with real Harmony patches.
 - In-game validation: active. Mouse-directed Grapple selection and right-click
-  routing work; the current `0.3.0` build adds live condition diagnostics for
+  routing work; the current `0.4.0` build adds live condition diagnostics for
   tuning and edge-case investigation.
 
 The project remains experimental and has not been packaged as a stable release.
@@ -59,7 +59,7 @@ plugin load. Important settings:
 - `ShowOverlay = true`
 - `ShowWorldMarkers = true`
 
-The persistent screen overlay shows the vanilla Grapple target and candidates,
+The persistent Screen Space Overlay Canvas shows the vanilla Grapple target and candidates,
 precision radius, mouse-to-target distance, cooldowns, ranges, Bash target and
 the final input route. It is enabled for the current investigation build.
 

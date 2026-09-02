@@ -34,6 +34,12 @@ internal sealed class GameTypeCatalog
     public Type? Vector2 { get; private init; }
     public Type? Vector3 { get; private init; }
     public Type? TextAnchor { get; private init; }
+    public Type? Canvas { get; private init; }
+    public Type? RenderMode { get; private init; }
+    public Type? UiText { get; private init; }
+    public Type? UiImage { get; private init; }
+    public Type? HorizontalWrapMode { get; private init; }
+    public Type? VerticalWrapMode { get; private init; }
 
     public static bool TryCreate(out GameTypeCatalog? catalog, out string error)
     {
@@ -95,6 +101,12 @@ internal sealed class GameTypeCatalog
             Vector2 = FindType("UnityEngine.Vector2"),
             Vector3 = FindType("UnityEngine.Vector3"),
             TextAnchor = FindType("UnityEngine.TextAnchor"),
+            Canvas = FindType("UnityEngine.Canvas"),
+            RenderMode = FindType("UnityEngine.RenderMode"),
+            UiText = FindType("UnityEngine.UI.Text"),
+            UiImage = FindType("UnityEngine.UI.Image"),
+            HorizontalWrapMode = FindType("UnityEngine.HorizontalWrapMode"),
+            VerticalWrapMode = FindType("UnityEngine.VerticalWrapMode"),
         };
         error = string.Empty;
         return true;
@@ -128,6 +140,8 @@ internal sealed class GameTypeCatalog
         TryLoadAssembly("UnityEngine.CoreModule");
         TryLoadAssembly("UnityEngine.IMGUIModule");
         TryLoadAssembly("UnityEngine.TextRenderingModule");
+        TryLoadAssembly("UnityEngine.UIModule");
+        TryLoadAssembly("UnityEngine.UI");
     }
 
     private static void TryLoadAssembly(string assemblyName)

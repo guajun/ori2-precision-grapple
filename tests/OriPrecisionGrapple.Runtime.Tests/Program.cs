@@ -27,11 +27,11 @@ try
     True(leash.ShouldShowMark(), "precise target keeps the Grapple mark");
     new GameController().OnGUI();
     True(
-        UnityEngine.GUIText.Instances.Any(text => text.text.Contains("CanLeash")),
-        "diagnostics overlay updates persistent GUIText content");
+        UnityEngine.UI.Text.Instances.Any(text => text.text.Contains("CanLeash")),
+        "diagnostics overlay updates persistent Canvas text content");
     True(
-        UnityEngine.GUIText.Instances.Count >= 82,
-        "diagnostics overlay creates HUD and reusable marker text objects");
+        UnityEngine.UI.Text.Instances.Count >= 82,
+        "diagnostics overlay creates Canvas HUD and reusable marker text objects");
 
     rightButtonHeld = false;
     False(PlayerInput.Instance.Bash.GetValue(), "release preserves original Bash input");
