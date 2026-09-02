@@ -32,15 +32,42 @@ namespace UnityEngine
         public float a;
     }
 
+    public class Texture
+    {
+    }
+
+    public sealed class Texture2D : Texture
+    {
+        public static Texture2D whiteTexture { get; } = new();
+    }
+
+    public sealed class GUIStyleState
+    {
+        public Color textColor { get; set; }
+    }
+
+    public sealed class GUIStyle
+    {
+        public int fontSize { get; set; }
+        public bool wordWrap { get; set; }
+        public bool richText { get; set; }
+        public GUIStyleState normal { get; } = new();
+    }
+
     public static class GUI
     {
         public static Color color { get; set; } = new(1, 1, 1, 1);
         public static int BoxCalls { get; private set; }
+        public static int DrawTextureCalls { get; private set; }
         public static int LabelCalls { get; private set; }
 
         public static void Box(Rect position, string text) => BoxCalls++;
 
         public static void Label(Rect position, string text) => LabelCalls++;
+
+        public static void Label(Rect position, string text, GUIStyle style) => LabelCalls++;
+
+        public static void DrawTexture(Rect position, Texture texture) => DrawTextureCalls++;
     }
 
     public struct Vector2

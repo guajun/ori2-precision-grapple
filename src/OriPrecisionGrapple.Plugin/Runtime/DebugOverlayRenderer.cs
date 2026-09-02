@@ -15,8 +15,10 @@ internal sealed class DebugOverlayRenderer
     private readonly Type _rectType;
     private readonly Type _colorType;
     private readonly Type? _matrixType;
-    private readonly MethodInfo _box;
+    private readonly MethodInfo _drawTexture;
     private readonly MethodInfo _label;
+    private readonly object _whiteTexture;
+    private readonly object _textStyle;
     private readonly IRuntimeSettings _settings;
     private readonly ManualLogSource _log;
     private bool _failureLogged;
@@ -27,8 +29,10 @@ internal sealed class DebugOverlayRenderer
         Type rectType,
         Type colorType,
         Type? matrixType,
-        MethodInfo box,
+        MethodInfo drawTexture,
         MethodInfo label,
+        object whiteTexture,
+        object textStyle,
         IRuntimeSettings settings,
         ManualLogSource log)
     {
@@ -36,8 +40,10 @@ internal sealed class DebugOverlayRenderer
         _rectType = rectType;
         _colorType = colorType;
         _matrixType = matrixType;
-        _box = box;
+        _drawTexture = drawTexture;
         _label = label;
+        _whiteTexture = whiteTexture;
+        _textStyle = textStyle;
         _settings = settings;
         _log = log;
     }
@@ -48,23 +54,56 @@ internal sealed class DebugOverlayRenderer
         ManualLogSource log,
         out string status)
     {
-        if (types.Gui is null || types.Rect is null || types.Color is null)
+        if (types.Gui is null || types.Rect is null || types.Color is null || types.GuiStyle is null || types.Texture2D is null)
         {
-            status = $"Missing GUI types: GUI={types.Gui is not null}, Rect={types.Rect is not null}, Color={types.Color is not null}.";
+            status = $"Missing GUI types: GUI={types.Gui is not null}, Rect={types.Rect is not null}, Color={types.Color is not null}, GUIStyle={types.GuiStyle is not null}, Texture2D={types.Texture2D is not null}.";
             return null;
         }
 
         const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
-        var box = FindTextMethod(types.Gui, types.Rect, "Box", flags);
-        var label = FindTextMethod(types.Gui, types.Rect, "Label", flags);
-        if (box is null || label is null)
+        var drawTexture = types.Gui.GetMethods(flags)
+            .FirstOrDefault(method =>
+            {
+                var parameters = method.GetParameters();
+                return method.Name == "DrawTexture" &&
+                    parameters.Length == 2 &&
+                    parameters[0].ParameterType == types.Rect &&
+                    parameters[1].ParameterType.FullName == "UnityEngine.Texture";
+            });
+        var label = FindStyledTextMethod(types.Gui, types.Rect, types.GuiStyle, flags);
+        var whiteTexture = ReflectionAccess.GetStatic(types.Texture2D, "whiteTexture");
+        var textStyle = Activator.CreateInstance(types.GuiStyle);
+        if (drawTexture is null || label is null || whiteTexture is null || textStyle is null)
         {
-            status = $"Missing text draw methods: Box={box is not null}, Label={label is not null}.";
+            status = $"Explicit draw resources unavailable: DrawTexture={drawTexture is not null}, StyledLabel={label is not null}, WhiteTexture={whiteTexture is not null}, Style={textStyle is not null}.";
             return null;
         }
 
-        status = "Unity GUI types and text draw methods resolved.";
-        return new DebugOverlayRenderer(types.Gui, types.Rect, types.Color, types.Matrix4x4, box, label, settings, log);
+        ReflectionAccess.TrySet(textStyle, 15, "fontSize");
+        ReflectionAccess.TrySet(textStyle, false, "wordWrap");
+        ReflectionAccess.TrySet(textStyle, false, "richText");
+        var normal = ReflectionAccess.Get(textStyle, "normal");
+        if (normal is not null)
+        {
+            var white = Activator.CreateInstance(types.Color, 1.0f, 1.0f, 1.0f, 1.0f);
+            if (white is not null)
+            {
+                ReflectionAccess.TrySet(normal, white, "textColor");
+            }
+        }
+
+        status = "Independent GUIStyle and direct texture drawing resources resolved.";
+        return new DebugOverlayRenderer(
+            types.Gui,
+            types.Rect,
+            types.Color,
+            types.Matrix4x4,
+            drawTexture,
+            label,
+            whiteTexture,
+            textStyle,
+            settings,
+            log);
     }
 
     public void Draw(DebugSnapshot snapshot)
@@ -105,7 +144,8 @@ internal sealed class DebugOverlayRenderer
             SetGuiColor("backgroundColor", 0.12f, 0.12f, 0.12f, 0.95f);
 
             var panelHeight = 34.0f + (snapshot.Lines.Count * LineHeight);
-            Box(PanelX, PanelY, PanelWidth, panelHeight, "Ori Precision Grapple Diagnostics");
+            Fill(PanelX, PanelY, PanelWidth, panelHeight, 0.05f, 0.05f, 0.05f, 0.88f);
+            Label(PanelX + 12.0f, PanelY + 3.0f, PanelWidth - 24.0f, LineHeight, "Ori Precision Grapple Diagnostics");
             for (var index = 0; index < snapshot.Lines.Count; index++)
             {
                 Label(
@@ -187,7 +227,9 @@ internal sealed class DebugOverlayRenderer
 
             var x = (float)marker.Point.X - 13.0f;
             var y = ToGuiY(snapshot, marker.Point) - 10.0f;
-            Box(x, y, 27.0f, 21.0f, marker.Label);
+            Fill(x, y, 27.0f, 21.0f);
+            SetColor(1.0f, 1.0f, 1.0f, 1.0f);
+            Label(x + 4.0f, y + 1.0f, 25.0f, 20.0f, marker.Label);
         }
 
         SetColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -208,7 +250,7 @@ internal sealed class DebugOverlayRenderer
             var angle = (Math.PI * 2.0 * index) / segments;
             var x = target.X + (Math.Cos(angle) * radius);
             var y = target.Y + (Math.Sin(angle) * radius);
-            Box((float)x - 1.5f, (float)(snapshot.ScreenHeight - y) - 1.5f, 3.0f, 3.0f, string.Empty);
+            Fill((float)x - 1.5f, (float)(snapshot.ScreenHeight - y) - 1.5f, 3.0f, 3.0f);
         }
     }
 
@@ -232,11 +274,18 @@ internal sealed class DebugOverlayRenderer
         }
     }
 
-    private void Box(float x, float y, float width, float height, string text) =>
-        _box.Invoke(null, new[] { CreateRect(x, y, width, height), text });
+    private void Fill(float x, float y, float width, float height) =>
+        _drawTexture.Invoke(null, new[] { CreateRect(x, y, width, height), _whiteTexture });
+
+    private void Fill(float x, float y, float width, float height, float red, float green, float blue, float alpha)
+    {
+        SetColor(red, green, blue, alpha);
+        Fill(x, y, width, height);
+        SetColor(1.0f, 1.0f, 1.0f, 1.0f);
+    }
 
     private void Label(float x, float y, float width, float height, string text) =>
-        _label.Invoke(null, new[] { CreateRect(x, y, width, height), text });
+        _label.Invoke(null, new[] { CreateRect(x, y, width, height), text, _textStyle });
 
     private object CreateRect(float x, float y, float width, float height) =>
         Activator.CreateInstance(_rectType, x, y, width, height)
@@ -245,18 +294,19 @@ internal sealed class DebugOverlayRenderer
     private static float ToGuiY(DebugSnapshot snapshot, ScreenPoint point) =>
         (float)(snapshot.ScreenHeight - point.Y);
 
-    private static MethodInfo? FindTextMethod(Type guiType, Type rectType, string name, BindingFlags flags) =>
+    private static MethodInfo? FindStyledTextMethod(Type guiType, Type rectType, Type styleType, BindingFlags flags) =>
         guiType.GetMethods(flags)
             .FirstOrDefault(method =>
             {
-                if (method.Name != name)
+                if (method.Name != "Label")
                 {
                     return false;
                 }
 
                 var parameters = method.GetParameters();
-                return parameters.Length == 2 &&
+                return parameters.Length == 3 &&
                     parameters[0].ParameterType == rectType &&
-                    parameters[1].ParameterType == typeof(string);
+                    parameters[1].ParameterType == typeof(string) &&
+                    parameters[2].ParameterType == styleType;
             });
 }

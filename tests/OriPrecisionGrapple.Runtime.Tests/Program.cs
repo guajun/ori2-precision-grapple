@@ -26,7 +26,7 @@ try
     True(PlayerInput.Instance.Grapple.GetValue(), "precise target enables Grapple");
     True(leash.ShouldShowMark(), "precise target keeps the Grapple mark");
     new GameController().OnGUI();
-    True(UnityEngine.GUI.BoxCalls > 0, "diagnostics overlay draws framed content");
+    True(UnityEngine.GUI.DrawTextureCalls > 0, "diagnostics overlay draws explicit texture content");
     True(UnityEngine.GUI.LabelCalls > 0, "diagnostics overlay draws condition labels");
 
     rightButtonHeld = false;

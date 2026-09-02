@@ -135,7 +135,7 @@ internal static class ReflectionAccess
         throw new MissingMemberException(type.FullName, string.Join("/", names));
     }
 
-    private static bool TrySet(object instance, object value, params string[] names)
+    public static bool TrySet(object instance, object value, params string[] names)
     {
         try
         {
