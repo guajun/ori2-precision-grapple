@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>OriPrecisionBash</AssemblyName>
+    <RootNamespace>OriPrecisionBash</RootNamespace>
+    <BepInExCoreDir Condition="'$(BepInExCoreDir)' == ''">$(MSBuildThisFileDirectory)..\..\vendor\bepinex\BepInEx\core</BepInExCoreDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OriPrecisionBash.Core\OriPrecisionBash.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="0Harmony" HintPath="$(BepInExCoreDir)\0Harmony.dll" Private="false" />
+    <Reference Include="BepInEx.Core" HintPath="$(BepInExCoreDir)\BepInEx.Core.dll" Private="false" />
+    <Reference Include="BepInEx.Unity.Common" HintPath="$(BepInExCoreDir)\BepInEx.Unity.Common.dll" Private="false" />
+    <Reference Include="BepInEx.Unity.IL2CPP" HintPath="$(BepInExCoreDir)\BepInEx.Unity.IL2CPP.dll" Private="false" />
+    <Reference Include="Il2CppInterop.HarmonySupport" HintPath="$(BepInExCoreDir)\Il2CppInterop.HarmonySupport.dll" Private="false" />
+    <Reference Include="Il2CppInterop.Runtime" HintPath="$(BepInExCoreDir)\Il2CppInterop.Runtime.dll" Private="false" />
+  </ItemGroup>
+
+  <Target Name="CheckBepInExSdk" BeforeTargets="ResolveReferences">
+    <Error
+      Condition="!Exists('$(BepInExCoreDir)\BepInEx.Unity.IL2CPP.dll')"
+      Text="BepInEx SDK not found at $(BepInExCoreDir). Run scripts/bootstrap.ps1." />
+  </Target>
+</Project>

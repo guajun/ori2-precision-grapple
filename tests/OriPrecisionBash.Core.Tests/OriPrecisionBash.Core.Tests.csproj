@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>OriPrecisionBash.Core.Tests</AssemblyName>
+    <RootNamespace>OriPrecisionBash.Core.Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\OriPrecisionBash.Core\OriPrecisionBash.Core.csproj" />
+  </ItemGroup>
+</Project>

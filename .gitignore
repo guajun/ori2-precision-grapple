@@ -1,0 +1,11 @@
+.vs/
+.vscode/
+.idea/
+.cache/
+artifacts/
+bin/
+obj/
+TestResults/
+vendor/
+*.user
+*.suo

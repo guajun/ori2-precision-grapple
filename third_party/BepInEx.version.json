@@ -1,0 +1,7 @@
+{
+  "name": "BepInEx Unity IL2CPP Windows x64",
+  "version": "6.0.0-pre.2",
+  "archive": "BepInEx-Unity.IL2CPP-win-x64-6.0.0-pre.2.zip",
+  "downloadUrl": "https://github.com/BepInEx/BepInEx/releases/download/v6.0.0-pre.2/BepInEx-Unity.IL2CPP-win-x64-6.0.0-pre.2.zip",
+  "sha256": "616EC7EB06CF11B2A0000E8FCEF04D1B12BB58E84A2E0BDAC9523234FC193CEB"
+}
