@@ -32,6 +32,7 @@ internal sealed class GameRuntime
     private long _targetSearchSequence;
     private long _targetSearchCompletedAt;
     private bool _snapshotFailureLogged;
+    private bool _overlayCallbackLogged;
 
     public GameRuntime(
         IRuntimeSettings settings,
@@ -46,7 +47,15 @@ internal sealed class GameRuntime
     public void Attach(GameTypeCatalog types)
     {
         _types = types;
-        _debugOverlay = DebugOverlayRenderer.TryCreate(types, _settings, _log);
+        _debugOverlay = DebugOverlayRenderer.TryCreate(types, _settings, _log, out var overlayStatus);
+        if (_debugOverlay is null)
+        {
+            _log.LogWarning($"Diagnostics overlay renderer unavailable: {overlayStatus}");
+        }
+        else
+        {
+            _log.LogInfo($"Diagnostics overlay renderer ready: {overlayStatus}");
+        }
     }
 
     public void BeginTargetSearch(object spiritLeash)
@@ -108,7 +117,18 @@ internal sealed class GameRuntime
 
     public void DrawDiagnostics()
     {
-        if (!_settings.ShowOverlay || _debugOverlay is null || _snapshotFailureLogged)
+        if (!_settings.ShowOverlay)
+        {
+            return;
+        }
+
+        if (!_overlayCallbackLogged)
+        {
+            _overlayCallbackLogged = true;
+            _log.LogInfo("GameController.OnGUI diagnostics callback reached.");
+        }
+
+        if (_debugOverlay is null || _snapshotFailureLogged)
         {
             return;
         }

@@ -19,6 +19,7 @@ internal sealed class DebugOverlayRenderer
     private readonly IRuntimeSettings _settings;
     private readonly ManualLogSource _log;
     private bool _failureLogged;
+    private bool _successLogged;
 
     private DebugOverlayRenderer(
         Type guiType,
@@ -41,19 +42,26 @@ internal sealed class DebugOverlayRenderer
     public static DebugOverlayRenderer? TryCreate(
         GameTypeCatalog types,
         IRuntimeSettings settings,
-        ManualLogSource log)
+        ManualLogSource log,
+        out string status)
     {
         if (types.Gui is null || types.Rect is null || types.Color is null)
         {
+            status = $"Missing GUI types: GUI={types.Gui is not null}, Rect={types.Rect is not null}, Color={types.Color is not null}.";
             return null;
         }
 
         const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
         var box = FindTextMethod(types.Gui, types.Rect, "Box", flags);
         var label = FindTextMethod(types.Gui, types.Rect, "Label", flags);
-        return box is null || label is null
-            ? null
-            : new DebugOverlayRenderer(types.Gui, types.Rect, types.Color, box, label, settings, log);
+        if (box is null || label is null)
+        {
+            status = $"Missing text draw methods: Box={box is not null}, Label={label is not null}.";
+            return null;
+        }
+
+        status = "Unity GUI types and text draw methods resolved.";
+        return new DebugOverlayRenderer(types.Gui, types.Rect, types.Color, box, label, settings, log);
     }
 
     public void Draw(DebugSnapshot snapshot)
@@ -84,6 +92,12 @@ internal sealed class DebugOverlayRenderer
             if (_settings.ShowWorldMarkers)
             {
                 DrawWorldMarkers(snapshot);
+            }
+
+            if (!_successLogged)
+            {
+                _successLogged = true;
+                _log.LogInfo("Diagnostics overlay completed its first OnGUI draw.");
             }
         }
         catch (Exception exception)

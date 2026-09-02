@@ -61,9 +61,20 @@ internal sealed class GamePatchInstaller
 
             if (types.GameController is not null && types.Gui is not null && types.Rect is not null && types.Color is not null)
             {
-                PatchOptional(
-                    GameTypeCatalog.FindMethod(types.GameController, "OnGUI", 0),
-                    postfix: nameof(PatchCallbacks.DebugOverlayPostfix));
+                var onGui = GameTypeCatalog.FindMethod(types.GameController, "OnGUI", 0);
+                if (onGui is null)
+                {
+                    _log.LogWarning("Diagnostics overlay hook unavailable: GameController.OnGUI was not found.");
+                }
+                else
+                {
+                    Patch(onGui, null, nameof(PatchCallbacks.DebugOverlayPostfix));
+                    _log.LogInfo("Diagnostics overlay hook installed on GameController.OnGUI.");
+                }
+            }
+            else
+            {
+                _log.LogWarning("Diagnostics overlay hook unavailable because one or more required types were not loaded.");
             }
 
             PatchOptional(
