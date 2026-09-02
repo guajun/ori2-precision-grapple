@@ -6,6 +6,7 @@ internal interface IRuntimeSettings
 {
     bool Enabled { get; }
     double RadiusPixels { get; }
+    double TargetMarkerRadiusPixels { get; }
     int ReferenceHeight { get; }
     bool HideImpreciseMark { get; }
     bool DebugLogging { get; }
@@ -18,6 +19,7 @@ internal sealed class ModSettings : IRuntimeSettings
 {
     private readonly ConfigEntry<bool> _enabled;
     private readonly ConfigEntry<float> _radiusPixels;
+    private readonly ConfigEntry<float> _targetMarkerRadiusPixels;
     private readonly ConfigEntry<int> _referenceHeight;
     private readonly ConfigEntry<bool> _hideImpreciseMark;
     private readonly ConfigEntry<bool> _debugLogging;
@@ -35,8 +37,13 @@ internal sealed class ModSettings : IRuntimeSettings
         _radiusPixels = config.Bind(
             "Precision",
             "RadiusPixelsAt1080p",
-            48.0f,
-            "Cursor radius around the selected Grapple point at the reference resolution.");
+            80.0f,
+            "Radius of the mouse acceptance circle at the reference resolution.");
+        _targetMarkerRadiusPixels = config.Bind(
+            "Visuals",
+            "TargetMarkerRadiusPixelsAt1080p",
+            11.0f,
+            "Radius of the small diagnostic circle drawn around Grapple target points.");
         _referenceHeight = config.Bind(
             "Precision",
             "ReferenceHeight",
@@ -72,6 +79,8 @@ internal sealed class ModSettings : IRuntimeSettings
     public bool Enabled => _enabled.Value;
 
     public double RadiusPixels => Math.Max(0.0, _radiusPixels.Value);
+
+    public double TargetMarkerRadiusPixels => Math.Max(2.0, _targetMarkerRadiusPixels.Value);
 
     public int ReferenceHeight => Math.Max(1, _referenceHeight.Value);
 

@@ -17,7 +17,7 @@ changed.
 - Runtime IL2CPP patch layer: implemented using generated-type discovery and
   exercised against a fake Ori API with real Harmony patches.
 - In-game validation: active. Mouse-directed Grapple selection and right-click
-  routing work; the current `0.5.0` build adds live condition diagnostics for
+  routing work; the current `0.6.0` build adds live condition diagnostics for
   tuning and edge-case investigation.
 
 The project remains experimental and has not been packaged as a stable release.
@@ -52,18 +52,26 @@ unknown root loader. It does not launch Ori or Steam.
 BepInEx creates `BepInEx/config/io.github.guajun.ori2precisiongrapple.cfg` after the first
 plugin load. Important settings:
 
-- `RadiusPixelsAt1080p = 48`
+- `RadiusPixelsAt1080p = 80`
 - `ReferenceHeight = 1080`
+- `TargetMarkerRadiusPixelsAt1080p = 11`
 - `HideImpreciseGrappleMark = true`
 - `DebugLogging = false`
 - `ExternalMonitorEnabled = true`
 - `ShowOverlay = false`
 - `ShowWorldMarkers = true`
 
-The external Windows monitor shows the vanilla Grapple target and candidates,
-precision radius, mouse-to-target distance, cooldowns, ranges, Bash target and
-the final input route. It uses a local named pipe and does not depend on Ori's
-custom rendering pipeline.
+The external Windows monitor draws a large mouse-acceptance circle, small rings
+at the game's actual hook points, normal and retained-target range boundaries,
+and a short reason beside every observed candidate. Colors distinguish ready,
+cursor miss, vanilla selector conflict, direction rejection, retained-only
+range, out of range, and global cooldown/state blockers. The HUD also shows the
+underlying costs, angles, cooldowns, ranges, Bash target and final input route.
+Candidates are observed after Ori's early type/visibility filters, so an object
+which never reaches target scoring will not receive a candidate marker.
+
+The monitor uses a local named pipe and does not depend on Ori's custom
+rendering pipeline.
 
 ```powershell
 .\scripts\start-monitor.ps1

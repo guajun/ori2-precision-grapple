@@ -8,6 +8,7 @@ namespace OriPrecisionGrapple.Runtime;
 internal sealed class DiagnosticPipeServer : IDisposable
 {
     private readonly ManualLogSource _log;
+    private readonly string _pipeName;
     private readonly CancellationTokenSource _cancellation = new();
     private readonly SemaphoreSlim _frameReady = new(0, 1);
     private readonly Task _worker;
@@ -15,9 +16,10 @@ internal sealed class DiagnosticPipeServer : IDisposable
     private long _latestSequence;
     private bool _connectedLogged;
 
-    public DiagnosticPipeServer(ManualLogSource log)
+    public DiagnosticPipeServer(ManualLogSource log, string? pipeName = null)
     {
         _log = log;
+        _pipeName = pipeName ?? DiagnosticProtocol.PipeName;
         _worker = Task.Run(() => RunAsync(_cancellation.Token));
     }
 
@@ -56,7 +58,7 @@ internal sealed class DiagnosticPipeServer : IDisposable
             try
             {
                 await using var pipe = new NamedPipeServerStream(
-                    DiagnosticProtocol.PipeName,
+                    _pipeName,
                     PipeDirection.Out,
                     1,
                     PipeTransmissionMode.Byte,
@@ -66,7 +68,7 @@ internal sealed class DiagnosticPipeServer : IDisposable
                 if (!_connectedLogged)
                 {
                     _connectedLogged = true;
-                    _log.LogInfo($"External diagnostics monitor connected to pipe '{DiagnosticProtocol.PipeName}'.");
+                    _log.LogInfo($"External diagnostics monitor connected to pipe '{_pipeName}'.");
                 }
 
                 await using var writer = new StreamWriter(pipe, leaveOpen: true)

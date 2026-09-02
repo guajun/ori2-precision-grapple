@@ -44,6 +44,14 @@ tracks Ori's Win32 client rectangle and only becomes visible while Ori is the
 foreground window. Incoming frames are coalesced in a one-frame UI slot, so a
 slow paint drops stale frames instead of accumulating latency.
 
+The mouse acceptance radius and small target-point radius are separate visual
+quantities. Candidate colors report range, direction/score selection and global
+ability blockers. Normal and retained-target range boundaries are projected
+from Ori's world position through the game camera. Candidate collection occurs
+at `CalculateAttackableCost`, after early target type and visibility filters;
+the overlay labels that observation boundary instead of guessing why an unseen
+object was rejected.
+
 ## Why runtime reflection
 
 The game is IL2CPP and BepInEx creates the managed interop assemblies on its

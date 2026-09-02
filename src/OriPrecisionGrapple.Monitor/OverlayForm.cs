@@ -16,12 +16,9 @@ internal sealed class OverlayForm : Form
     private const uint SwpShowWindow = 0x0040;
     private static readonly IntPtr HwndTopmost = new(-1);
     private static readonly Color TransparencyColor = Color.Magenta;
-    private static readonly Color GrappleCandidateColor = Color.FromArgb(52, 202, 235);
-    private static readonly Color GrappleTargetColor = Color.FromArgb(68, 214, 112);
-    private static readonly Color BashTargetColor = Color.FromArgb(245, 166, 35);
-
     private readonly System.Windows.Forms.Timer _placementTimer;
     private readonly Font _hudFont = new(FontFamily.GenericMonospace, 10.0f);
+    private readonly Font _markerFont = new(FontFamily.GenericMonospace, 9.0f, FontStyle.Bold);
     private DiagnosticFrame? _frame;
     private bool _overlayEnabled = true;
 
@@ -44,6 +41,7 @@ internal sealed class OverlayForm : Form
             _placementTimer.Stop();
             _placementTimer.Dispose();
             _hudFont.Dispose();
+            _markerFont.Dispose();
         };
     }
 
@@ -89,24 +87,19 @@ internal sealed class OverlayForm : Form
             return;
         }
 
-        eventArgs.Graphics.SmoothingMode = SmoothingMode.None;
+        eventArgs.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
         eventArgs.Graphics.TextRenderingHint = TextRenderingHint.SingleBitPerPixelGridFit;
         var scaleX = (double)ClientSize.Width / _frame.ScreenWidth;
         var scaleY = (double)ClientSize.Height / _frame.ScreenHeight;
 
-        if (ShowHud && _frame.Lines.Length > 0)
-        {
-            DrawHud(eventArgs.Graphics, _frame.Lines);
-        }
+        DrawGrappleRanges(eventArgs.Graphics, scaleX, scaleY);
 
-        if (_frame.GrappleTargetX.HasValue && _frame.GrappleTargetY.HasValue)
+        if (double.IsFinite(_frame.CursorX) && double.IsFinite(_frame.CursorY))
         {
-            var center = ToClient(_frame.GrappleTargetX.Value, _frame.GrappleTargetY.Value, scaleX, scaleY);
+            var center = ToClient(_frame.CursorX, _frame.CursorY, scaleX, scaleY);
             var radiusX = (float)(_frame.EffectiveRadius * scaleX);
             var radiusY = (float)(_frame.EffectiveRadius * scaleY);
-            using var radiusPen = new Pen(
-                _frame.PrecisionHit ? GrappleTargetColor : Color.FromArgb(235, 77, 75),
-                2.0f);
+            using var radiusPen = new Pen(DiagnosticPalette.For(_frame.GrappleState), 2.5f);
             eventArgs.Graphics.DrawEllipse(
                 radiusPen,
                 center.X - radiusX,
@@ -123,10 +116,54 @@ internal sealed class OverlayForm : Form
         if (double.IsFinite(_frame.CursorX) && double.IsFinite(_frame.CursorY))
         {
             var cursor = ToClient(_frame.CursorX, _frame.CursorY, scaleX, scaleY);
-            using var cursorPen = new Pen(Color.WhiteSmoke, 1.5f);
+            using var cursorPen = new Pen(Color.WhiteSmoke, 1.75f);
             eventArgs.Graphics.DrawLine(cursorPen, cursor.X - 9, cursor.Y, cursor.X + 9, cursor.Y);
             eventArgs.Graphics.DrawLine(cursorPen, cursor.X, cursor.Y - 9, cursor.X, cursor.Y + 9);
         }
+
+        if (ShowHud && _frame.Lines.Length > 0)
+        {
+            DrawHud(eventArgs.Graphics, _frame.Lines);
+        }
+    }
+
+    private void DrawGrappleRanges(Graphics graphics, double scaleX, double scaleY)
+    {
+        if (_frame?.GrappleRangeCenterX is not { } centerX ||
+            _frame.GrappleRangeCenterY is not { } centerY)
+        {
+            return;
+        }
+
+        var center = ToClient(centerX, centerY, scaleX, scaleY);
+        DrawRangeEllipse(
+            graphics,
+            center,
+            _frame.RetainedRangeRadiusX * scaleX,
+            _frame.RetainedRangeRadiusY * scaleY,
+            DiagnosticPalette.RetainedRange);
+        DrawRangeEllipse(
+            graphics,
+            center,
+            _frame.NormalRangeRadiusX * scaleX,
+            _frame.NormalRangeRadiusY * scaleY,
+            DiagnosticPalette.OutOfRange);
+    }
+
+    private static void DrawRangeEllipse(Graphics graphics, PointF center, double radiusX, double radiusY, Color color)
+    {
+        if (radiusX <= 0.0 || radiusY <= 0.0)
+        {
+            return;
+        }
+
+        using var pen = new Pen(Color.FromArgb(150, color), 1.5f) { DashStyle = DashStyle.Dash };
+        graphics.DrawEllipse(
+            pen,
+            center.X - (float)radiusX,
+            center.Y - (float)radiusY,
+            (float)(radiusX * 2.0),
+            (float)(radiusY * 2.0));
     }
 
     private void DrawHud(Graphics graphics, IReadOnlyList<string> lines)
@@ -134,7 +171,8 @@ internal sealed class OverlayForm : Form
         const float x = 12.0f;
         const float y = 12.0f;
         const float lineHeight = 18.0f;
-        const float width = 660.0f;
+        var contentWidth = lines.Max(line => graphics.MeasureString(line, _hudFont).Width);
+        var width = Math.Clamp(contentWidth + 22.0f, 700.0f, 1100.0f);
         var height = 16.0f + (lines.Count * lineHeight);
         using var background = new SolidBrush(Color.FromArgb(24, 27, 30));
         using var foreground = new SolidBrush(Color.WhiteSmoke);
@@ -148,16 +186,35 @@ internal sealed class OverlayForm : Form
     private void DrawMarker(Graphics graphics, DiagnosticMarker marker, double scaleX, double scaleY)
     {
         var point = ToClient(marker.X, marker.Y, scaleX, scaleY);
-        var color = marker.Kind switch
+        var color = DiagnosticPalette.For(marker.State, marker.Kind);
+        if (marker.Kind == "BashTarget")
         {
-            "GrappleTarget" => GrappleTargetColor,
-            "BashTarget" => BashTargetColor,
-            _ => GrappleCandidateColor,
-        };
-        using var brush = new SolidBrush(color);
-        using var labelBrush = new SolidBrush(Color.WhiteSmoke);
-        graphics.FillEllipse(brush, point.X - 5.0f, point.Y - 5.0f, 10.0f, 10.0f);
-        graphics.DrawString(marker.Label, Font, labelBrush, point.X + 7.0f, point.Y - 8.0f);
+            using var brush = new SolidBrush(color);
+            graphics.FillEllipse(brush, point.X - 5.0f, point.Y - 5.0f, 10.0f, 10.0f);
+        }
+        else
+        {
+            var radiusX = Math.Max(7.0f, (float)(_frame!.TargetMarkerRadius * scaleX));
+            var radiusY = Math.Max(7.0f, (float)(_frame.TargetMarkerRadius * scaleY));
+            using var ringPen = new Pen(color, marker.Kind == "GrappleTarget" ? 3.0f : 2.0f);
+            using var centerBrush = new SolidBrush(color);
+            graphics.DrawEllipse(ringPen, point.X - radiusX, point.Y - radiusY, radiusX * 2.0f, radiusY * 2.0f);
+            graphics.FillEllipse(centerBrush, point.X - 2.5f, point.Y - 2.5f, 5.0f, 5.0f);
+        }
+
+        DrawOutlinedText(graphics, marker.Label, _markerFont, color, point.X + 12.0f, point.Y - 14.0f);
+        if (!string.IsNullOrWhiteSpace(marker.Detail))
+        {
+            DrawOutlinedText(graphics, marker.Detail, _hudFont, color, point.X + 12.0f, point.Y + 2.0f);
+        }
+    }
+
+    private static void DrawOutlinedText(Graphics graphics, string text, Font font, Color color, float x, float y)
+    {
+        using var shadow = new SolidBrush(Color.Black);
+        using var foreground = new SolidBrush(color);
+        graphics.DrawString(text, font, shadow, x + 1.0f, y + 1.0f);
+        graphics.DrawString(text, font, foreground, x, y);
     }
 
     private PointF ToClient(double x, double y, double scaleX, double scaleY) =>

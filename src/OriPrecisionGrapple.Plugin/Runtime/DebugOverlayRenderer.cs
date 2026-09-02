@@ -1,5 +1,6 @@
 using System.Reflection;
 using BepInEx.Logging;
+using OriPrecisionGrapple.Core.Diagnostics;
 
 namespace OriPrecisionGrapple.Runtime;
 
@@ -188,17 +189,15 @@ internal sealed class DebugOverlayRenderer
             var markerIndex = 0;
             if (_settings.ShowWorldMarkers && snapshot.ScreenWidth > 0 && snapshot.ScreenHeight > 0)
             {
-                if (snapshot.GrappleTarget is { } target && target.Depth > 0)
+                if (double.IsFinite(snapshot.Cursor.X) && double.IsFinite(snapshot.Cursor.Y))
                 {
                     const int segments = 40;
                     for (var index = 0; index < segments && markerIndex < _markers.Count; index++)
                     {
                         var angle = (Math.PI * 2.0 * index) / segments;
-                        var x = target.X + (Math.Cos(angle) * snapshot.EffectiveRadius);
-                        var y = target.Y + (Math.Sin(angle) * snapshot.EffectiveRadius);
-                        var color = snapshot.PrecisionHit
-                            ? CreateColor(0.2f, 1.0f, 0.3f, 1.0f)
-                            : CreateColor(1.0f, 0.25f, 0.25f, 1.0f);
+                        var x = snapshot.Cursor.X + (Math.Cos(angle) * snapshot.EffectiveRadius);
+                        var y = snapshot.Cursor.Y + (Math.Sin(angle) * snapshot.EffectiveRadius);
+                        var color = GetMarkerColor(snapshot.GrappleState);
                         UpdateMarker(markerIndex++, ".", x, y, color);
                     }
                 }
@@ -210,12 +209,9 @@ internal sealed class DebugOverlayRenderer
                         continue;
                     }
 
-                    var color = marker.Kind switch
-                    {
-                        DebugMarkerKind.GrappleTarget => CreateColor(0.2f, 1.0f, 0.3f, 1.0f),
-                        DebugMarkerKind.BashTarget => CreateColor(1.0f, 0.65f, 0.1f, 1.0f),
-                        _ => CreateColor(0.25f, 0.85f, 1.0f, 1.0f),
-                    };
+                    var color = marker.Kind == DebugMarkerKind.BashTarget
+                        ? CreateColor(1.0f, 0.65f, 0.1f, 1.0f)
+                        : GetMarkerColor(marker.State);
                     UpdateMarker(markerIndex++, marker.Label, marker.Point.X, marker.Point.Y, color);
                 }
 
@@ -307,6 +303,20 @@ internal sealed class DebugOverlayRenderer
     private object CreateColor(float red, float green, float blue, float alpha) =>
         Activator.CreateInstance(_colorType, red, green, blue, alpha)
         ?? throw new InvalidOperationException("Could not construct UnityEngine.Color.");
+
+    private object GetMarkerColor(string state) => state switch
+    {
+        DiagnosticMarkerStates.Ready => CreateColor(0.27f, 0.84f, 0.44f, 1.0f),
+        DiagnosticMarkerStates.CursorMiss => CreateColor(0.92f, 0.30f, 0.29f, 1.0f),
+        DiagnosticMarkerStates.SelectorConflict => CreateColor(1.0f, 0.84f, 0.31f, 1.0f),
+        DiagnosticMarkerStates.Direction => CreateColor(1.0f, 0.57f, 0.30f, 1.0f),
+        DiagnosticMarkerStates.RetainedRange => CreateColor(0.72f, 0.50f, 1.0f, 1.0f),
+        DiagnosticMarkerStates.OutOfRange => CreateColor(0.59f, 0.63f, 0.67f, 1.0f),
+        DiagnosticMarkerStates.Cooldown or
+        DiagnosticMarkerStates.Busy or
+        DiagnosticMarkerStates.Blocked => CreateColor(0.87f, 0.41f, 0.86f, 1.0f),
+        _ => CreateColor(0.20f, 0.79f, 0.92f, 1.0f),
+    };
 
     private static void SetEnabled(ScreenGraphic graphic, bool enabled)
     {

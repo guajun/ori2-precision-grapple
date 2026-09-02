@@ -16,7 +16,23 @@ public sealed class DiagnosticFrame
 
     public double EffectiveRadius { get; set; }
 
+    public double TargetMarkerRadius { get; set; }
+
     public bool PrecisionHit { get; set; }
+
+    public string GrappleState { get; set; } = DiagnosticMarkerStates.Unknown;
+
+    public double? GrappleRangeCenterX { get; set; }
+
+    public double? GrappleRangeCenterY { get; set; }
+
+    public double NormalRangeRadiusX { get; set; }
+
+    public double NormalRangeRadiusY { get; set; }
+
+    public double RetainedRangeRadiusX { get; set; }
+
+    public double RetainedRangeRadiusY { get; set; }
 
     public double? GrappleTargetX { get; set; }
 

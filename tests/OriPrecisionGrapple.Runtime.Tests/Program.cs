@@ -16,10 +16,11 @@ var installer = new GamePatchInstaller(harmony, runtime, log);
 
 try
 {
-    using (var pipeServer = new DiagnosticPipeServer(log))
+    var testPipeName = $"{DiagnosticProtocol.PipeName}.test.{Environment.ProcessId}";
+    using (var pipeServer = new DiagnosticPipeServer(log, testPipeName))
     await using (var pipeClient = new NamedPipeClientStream(
         ".",
-        DiagnosticProtocol.PipeName,
+        testPipeName,
         PipeDirection.In,
         PipeOptions.Asynchronous))
     {
@@ -28,8 +29,21 @@ try
         {
             ScreenWidth = 1920,
             ScreenHeight = 1080,
+            TargetMarkerRadius = 11,
+            GrappleState = DiagnosticMarkerStates.SelectorConflict,
             Lines = new[] { "CanLeash YES" },
-            Markers = new[] { new DiagnosticMarker { Label = "G*", Kind = "GrappleTarget", X = 100, Y = 200 } },
+            Markers = new[]
+            {
+                new DiagnosticMarker
+                {
+                    Label = "G*",
+                    Kind = "GrappleTarget",
+                    State = DiagnosticMarkerStates.Ready,
+                    Detail = "READY d13.8 a1.4",
+                    X = 100,
+                    Y = 200,
+                },
+            },
         });
         using var reader = new StreamReader(pipeClient, Encoding.UTF8, false, 4096, true);
         using var timeout = new CancellationTokenSource(3000);
@@ -38,6 +52,9 @@ try
         True(received is not null, "diagnostic pipe returns a JSON frame");
         True(received!.Sequence > 0, "diagnostic pipe assigns a frame sequence");
         True(received.Markers.Single().Label == "G*", "diagnostic pipe preserves marker data");
+        True(received.Markers.Single().State == DiagnosticMarkerStates.Ready, "diagnostic pipe preserves marker state");
+        True(received.Markers.Single().Detail.StartsWith("READY"), "diagnostic pipe preserves marker reason");
+        True(received.GrappleState == DiagnosticMarkerStates.SelectorConflict, "diagnostic pipe preserves Grapple state");
     }
 
     True(installer.TryInstall(), "runtime patches install against the fake game API");
@@ -49,6 +66,21 @@ try
     False(leash.FaceLeftDuringSearch, "facing follows the mouse during target search");
     Near(0.0f, Core.Input.Horizontal, "horizontal input is restored after target search");
     Near(1.0f, Core.Input.Vertical, "vertical input is restored after target search");
+
+    var snapshotMethod = typeof(GameRuntime).GetMethod(
+        "BuildDebugSnapshot",
+        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+    var snapshot = (DebugSnapshot?)snapshotMethod?.Invoke(runtime, null);
+    True(snapshot is not null, "diagnostic snapshot can be read after target search");
+    True(
+        snapshot!.Markers.Any(marker =>
+            marker.Kind == DebugMarkerKind.GrappleTarget &&
+            marker.State == DiagnosticMarkerStates.Ready),
+        "selected candidate is classified as ready");
+    True(snapshot.NormalRangeRadiusX > 0 && snapshot.NormalRangeRadiusY > 0, "normal Grapple range is projected");
+    True(
+        snapshot.RetainedRangeRadiusX > snapshot.NormalRangeRadiusX,
+        "retained-target range is projected beyond normal range");
 
     False(PlayerInput.Instance.Bash.GetValue(), "precise target suppresses Bash");
     True(PlayerInput.Instance.Grapple.GetValue(), "precise target enables Grapple");
@@ -110,6 +142,7 @@ internal sealed class FakeSettings : IRuntimeSettings
 {
     public bool Enabled => true;
     public double RadiusPixels => 24.0;
+    public double TargetMarkerRadiusPixels => 9.0;
     public int ReferenceHeight => 1080;
     public bool HideImpreciseMark => true;
     public bool DebugLogging => false;

@@ -332,14 +332,37 @@ public static class MoonInput
 public struct FakeLeashableInfo
 {
     public UnityEngine.Vector3 SurfaceWorldPos;
+    public FakeSpiritLeashAttackable? SpiritLeashAttackable;
 
     public UnityEngine.Vector3 GetAttackablePosition() => SurfaceWorldPos;
 }
 
+public sealed class FakeSpiritLeashAttackable
+{
+    public UnityEngine.Transform HookTargetTransform { get; } = new()
+    {
+        position = new UnityEngine.Vector3(124, 100, 1),
+    };
+}
+
 public sealed class SeinSpiritLeashAbility
 {
+    public FakeSpiritLeashAttackable Candidate { get; } = new();
     public bool HasTarget { get; set; } = true;
     public bool CanLeash { get; set; } = true;
+    public float MoveCooldownTimer { get; set; }
+    public float ProviderCooldownTimer { get; set; }
+    public float SpiritLeashRange { get; set; } = 21;
+    public float SpiritLeashRangeCurrentTarget { get; set; } = 25;
+    public float DistanceFromOri { get; set; } = 10;
+    public float HookDirectionErrorAngle { get; set; } = 60;
+    public float HookDirectionErrorAngleNoInput { get; set; } = 45;
+    public float HookDirectionErrorAngleRetainTargetBonus { get; set; } = 15;
+    public float FacingDirectionErrorAngle { get; set; } = 80;
+    public float DurationToKeepTargetWhileFacingAway { get; set; } = 0.2f;
+    public float SustainedTargetAdditionalCost { get; set; } = 10;
+    public string m_currentState { get; set; } = "Idle";
+    public FakeSpiritLeashAttackable? lastTargetSpiritLeashAttackable { get; set; }
     public FakeLeashableInfo m_targetLeash = new()
     {
         SurfaceWorldPos = new UnityEngine.Vector3(124, 100, 1),
@@ -351,6 +374,8 @@ public sealed class SeinSpiritLeashAbility
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void FindClosestAttackHandler()
     {
+        m_targetLeash.SpiritLeashAttackable = Candidate;
+        lastTargetSpiritLeashAttackable = Candidate;
         var angle = 0.0f;
         var axis = Core.Input.get_Axis();
         IsInputTowardsTarget(
@@ -358,8 +383,16 @@ public sealed class SeinSpiritLeashAbility
             new UnityEngine.Vector3(axis.x, axis.y, 0),
             false,
             ref angle);
+        CalculateAttackableCost(Candidate, 10, 0, true);
         FaceLeftDuringSearch = Game.Characters.m_sein.get_FaceLeft();
     }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public float CalculateAttackableCost(
+        FakeSpiritLeashAttackable attackable,
+        float distance,
+        float angleDifference,
+        bool hasInputDirection) => distance + angleDifference;
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public bool IsInputTowardsTarget(

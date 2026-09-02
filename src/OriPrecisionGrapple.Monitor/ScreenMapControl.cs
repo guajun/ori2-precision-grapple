@@ -5,10 +5,6 @@ namespace OriPrecisionGrapple.Monitor;
 
 internal sealed class ScreenMapControl : Control
 {
-    private static readonly Color GrappleCandidateColor = Color.FromArgb(52, 202, 235);
-    private static readonly Color GrappleTargetColor = Color.FromArgb(68, 214, 112);
-    private static readonly Color BashTargetColor = Color.FromArgb(245, 166, 35);
-
     private DiagnosticFrame? _frame;
 
     public ScreenMapControl()
@@ -55,13 +51,13 @@ internal sealed class ScreenMapControl : Control
         eventArgs.Graphics.FillRectangle(boardBrush, board);
         eventArgs.Graphics.DrawRectangle(boardPen, board.X, board.Y, board.Width, board.Height);
 
-        if (_frame.GrappleTargetX.HasValue && _frame.GrappleTargetY.HasValue)
+        DrawGrappleRanges(eventArgs.Graphics, board, scale);
+
+        if (double.IsFinite(_frame.CursorX) && double.IsFinite(_frame.CursorY))
         {
-            var center = ToClient(_frame.GrappleTargetX.Value, _frame.GrappleTargetY.Value, board, scale);
+            var center = ToClient(_frame.CursorX, _frame.CursorY, board, scale);
             var radius = (float)(_frame.EffectiveRadius * scale);
-            using var radiusPen = new Pen(
-                _frame.PrecisionHit ? GrappleTargetColor : Color.FromArgb(235, 77, 75),
-                2.0f);
+            using var radiusPen = new Pen(DiagnosticPalette.For(_frame.GrappleState), 2.0f);
             eventArgs.Graphics.DrawEllipse(radiusPen, center.X - radius, center.Y - radius, radius * 2.0f, radius * 2.0f);
         }
 
@@ -81,6 +77,45 @@ internal sealed class ScreenMapControl : Control
         DrawLegend(eventArgs.Graphics, board);
     }
 
+    private void DrawGrappleRanges(Graphics graphics, RectangleF board, float scale)
+    {
+        if (_frame?.GrappleRangeCenterX is not { } centerX ||
+            _frame.GrappleRangeCenterY is not { } centerY)
+        {
+            return;
+        }
+
+        var center = ToClient(centerX, centerY, board, scale);
+        DrawRangeEllipse(
+            graphics,
+            center,
+            _frame.RetainedRangeRadiusX * scale,
+            _frame.RetainedRangeRadiusY * scale,
+            DiagnosticPalette.RetainedRange);
+        DrawRangeEllipse(
+            graphics,
+            center,
+            _frame.NormalRangeRadiusX * scale,
+            _frame.NormalRangeRadiusY * scale,
+            DiagnosticPalette.OutOfRange);
+    }
+
+    private static void DrawRangeEllipse(Graphics graphics, PointF center, double radiusX, double radiusY, Color color)
+    {
+        if (radiusX <= 0.0 || radiusY <= 0.0)
+        {
+            return;
+        }
+
+        using var pen = new Pen(Color.FromArgb(150, color), 1.0f) { DashStyle = DashStyle.Dash };
+        graphics.DrawEllipse(
+            pen,
+            center.X - (float)radiusX,
+            center.Y - (float)radiusY,
+            (float)(radiusX * 2.0),
+            (float)(radiusY * 2.0));
+    }
+
     private void DrawMarker(
         Graphics graphics,
         DiagnosticMarker marker,
@@ -88,16 +123,22 @@ internal sealed class ScreenMapControl : Control
         float scale)
     {
         var point = ToClient(marker.X, marker.Y, board, scale);
-        var color = marker.Kind switch
+        var color = DiagnosticPalette.For(marker.State, marker.Kind);
+        if (marker.Kind == "BashTarget")
         {
-            "GrappleTarget" => GrappleTargetColor,
-            "BashTarget" => BashTargetColor,
-            _ => GrappleCandidateColor,
-        };
+            using var brush = new SolidBrush(color);
+            graphics.FillEllipse(brush, point.X - 5.0f, point.Y - 5.0f, 10.0f, 10.0f);
+        }
+        else
+        {
+            var radius = Math.Max(5.0f, (float)(_frame!.TargetMarkerRadius * scale));
+            using var pen = new Pen(color, marker.Kind == "GrappleTarget" ? 3.0f : 2.0f);
+            using var centerBrush = new SolidBrush(color);
+            graphics.DrawEllipse(pen, point.X - radius, point.Y - radius, radius * 2.0f, radius * 2.0f);
+            graphics.FillEllipse(centerBrush, point.X - 2.0f, point.Y - 2.0f, 4.0f, 4.0f);
+        }
 
-        using var brush = new SolidBrush(color);
         using var textBrush = new SolidBrush(Color.WhiteSmoke);
-        graphics.FillEllipse(brush, point.X - 5.0f, point.Y - 5.0f, 10.0f, 10.0f);
         graphics.DrawString(marker.Label, Font, textBrush, point.X + 7.0f, point.Y - 8.0f);
     }
 
@@ -105,9 +146,14 @@ internal sealed class ScreenMapControl : Control
     {
         var entries = new[]
         {
-            (GrappleTargetColor, "G* selected Grapple"),
-            (GrappleCandidateColor, "G# evaluated Grapple"),
-            (BashTargetColor, "B Bash target"),
+            (DiagnosticPalette.Ready, "ready"),
+            (DiagnosticPalette.CursorMiss, "selected / cursor miss"),
+            (DiagnosticPalette.SelectorConflict, "cursor hit / selector kept another"),
+            (DiagnosticPalette.RetainedRange, "retained-target range only"),
+            (DiagnosticPalette.OutOfRange, "out of range"),
+            (DiagnosticPalette.Blocked, "cooldown, busy, or blocked"),
+            (DiagnosticPalette.Candidate, "evaluated candidate"),
+            (DiagnosticPalette.Bash, "Bash target"),
         };
         var y = board.Top + 10.0f;
         foreach (var entry in entries)

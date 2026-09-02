@@ -199,7 +199,15 @@ internal sealed class GameRuntime : IDisposable
         CursorX = snapshot.Cursor.X,
         CursorY = snapshot.Cursor.Y,
         EffectiveRadius = snapshot.EffectiveRadius,
+        TargetMarkerRadius = snapshot.TargetMarkerRadius,
         PrecisionHit = snapshot.PrecisionHit,
+        GrappleState = snapshot.GrappleState,
+        GrappleRangeCenterX = snapshot.GrappleRangeCenter?.X,
+        GrappleRangeCenterY = snapshot.GrappleRangeCenter?.Y,
+        NormalRangeRadiusX = snapshot.NormalRangeRadiusX,
+        NormalRangeRadiusY = snapshot.NormalRangeRadiusY,
+        RetainedRangeRadiusX = snapshot.RetainedRangeRadiusX,
+        RetainedRangeRadiusY = snapshot.RetainedRangeRadiusY,
         GrappleTargetX = snapshot.GrappleTarget?.X,
         GrappleTargetY = snapshot.GrappleTarget?.Y,
         Lines = snapshot.Lines.ToArray(),
@@ -207,6 +215,8 @@ internal sealed class GameRuntime : IDisposable
         {
             Label = marker.Label,
             Kind = marker.Kind.ToString(),
+            State = marker.State,
+            Detail = marker.Detail,
             X = marker.Point.X,
             Y = marker.Point.Y,
         }).ToArray(),
@@ -313,6 +323,9 @@ internal sealed class GameRuntime : IDisposable
         var effectiveRadius = height > 0
             ? _settings.RadiusPixels * height / _settings.ReferenceHeight
             : 0.0;
+        var targetMarkerRadius = height > 0
+            ? _settings.TargetMarkerRadiusPixels * height / _settings.ReferenceHeight
+            : 0.0;
 
         var hasTarget = _latestSpiritLeash is not null &&
             ReflectionAccess.GetBoolean(_latestSpiritLeash, false, "HasTarget");
@@ -326,44 +339,6 @@ internal sealed class GameRuntime : IDisposable
             _settings.RadiusPixels,
             _settings.ReferenceHeight);
 
-        var markers = new List<DebugMarker>();
-        if (hasTarget && hasTargetMetrics)
-        {
-            markers.Add(new DebugMarker(target, "G*", DebugMarkerKind.GrappleTarget));
-        }
-
-        var candidateIndex = 0;
-        foreach (var candidate in _grappleCandidates)
-        {
-            if (!TryGetGrappleCandidateWorldPosition(candidate.Attackable, out var worldPosition) ||
-                !TryWorldToScreen(worldPosition!, out var screenPosition))
-            {
-                continue;
-            }
-
-            candidateIndex++;
-            markers.Add(new DebugMarker(
-                screenPosition,
-                $"G{candidateIndex}",
-                DebugMarkerKind.GrappleCandidate));
-        }
-
-        var bashRange = ReadNumber(_latestBashAttack, "Range");
-        var bashDistance = double.NaN;
-        var hasBashTarget = TryGetBashWorldPosition(out var bashWorld);
-        if (hasBashTarget)
-        {
-            if (TryWorldToScreen(bashWorld!, out var bashScreen))
-            {
-                markers.Add(new DebugMarker(bashScreen, "B", DebugMarkerKind.BashTarget));
-            }
-
-            if (TryGetOriWorldPosition(out var oriWorld))
-            {
-                bashDistance = WorldDistance(oriWorld!, bashWorld!);
-            }
-        }
-
         var playerInput = ReflectionAccess.GetStatic(_types.PlayerInput, "Instance");
         var playerInputActive = playerInput is not null && ReflectionAccess.GetBoolean(playerInput, false, "Active");
         var moveCooldownTimer = ReadNumber(_latestSpiritLeash, "MoveCooldownTimer", "_MoveCooldownTimer_k__BackingField");
@@ -371,9 +346,159 @@ internal sealed class GameRuntime : IDisposable
         var normalRange = ReadNumber(_latestSpiritLeash, "SpiritLeashRange");
         var currentRange = ReadNumber(_latestSpiritLeash, "SpiritLeashRangeCurrentTarget");
         var targetDistance = ReadNumber(_latestSpiritLeash, "DistanceFromOri");
+        var hookAngle = ReadNumber(_latestSpiritLeash, "HookDirectionErrorAngle");
+        var noInputHookAngle = ReadNumber(_latestSpiritLeash, "HookDirectionErrorAngleNoInput");
+        var retainAngleBonus = ReadNumber(_latestSpiritLeash, "HookDirectionErrorAngleRetainTargetBonus");
+        var facingAngle = ReadNumber(_latestSpiritLeash, "FacingDirectionErrorAngle");
+        var retentionDuration = ReadNumber(_latestSpiritLeash, "DurationToKeepTargetWhileFacingAway");
+        var sustainedCost = ReadNumber(_latestSpiritLeash, "SustainedTargetAdditionalCost");
         var state = _latestSpiritLeash is null
             ? "n/a"
             : ReflectionAccess.Get(_latestSpiritLeash, "m_currentState")?.ToString() ?? "n/a";
+        var grappleState = GetGrappleState(
+            hasTarget,
+            canLeash,
+            precisionHit,
+            moveCooldownTimer,
+            providerCooldownTimer,
+            state);
+        var globalBlockDetail = GetGlobalBlockDetail(grappleState, moveCooldownTimer, providerCooldownTimer, state);
+
+        var targetLeash = _latestSpiritLeash is null
+            ? null
+            : ReflectionAccess.Get(_latestSpiritLeash, "m_targetLeash", "TargetLeash");
+        var selectedAttackable = targetLeash is null
+            ? null
+            : ReflectionAccess.Get(targetLeash, "SpiritLeashAttackable");
+        var retainedAttackable = _latestSpiritLeash is null
+            ? null
+            : ReflectionAccess.Get(_latestSpiritLeash, "lastTargetSpiritLeashAttackable");
+        var selectedCandidate = _grappleCandidates.FirstOrDefault(candidate =>
+            ReflectionAccess.SameNativeObject(candidate.Attackable, selectedAttackable));
+        var selectedCost = selectedCandidate?.Cost ?? double.NaN;
+
+        ScreenPoint? grappleRangeCenter = null;
+        var normalRangeRadiusX = 0.0;
+        var normalRangeRadiusY = 0.0;
+        var retainedRangeRadiusX = 0.0;
+        var retainedRangeRadiusY = 0.0;
+        if (TryGetOriWorldPosition(out var rangeOrigin))
+        {
+            if (TryGetWorldRangeProjection(
+                rangeOrigin!,
+                normalRange,
+                out var center,
+                out normalRangeRadiusX,
+                out normalRangeRadiusY))
+            {
+                grappleRangeCenter = center;
+            }
+
+            TryGetWorldRangeProjection(
+                rangeOrigin!,
+                currentRange,
+                out _,
+                out retainedRangeRadiusX,
+                out retainedRangeRadiusY);
+        }
+
+        var markers = new List<DebugMarker>();
+        var candidateIndex = 0;
+        var unselectedIndex = 0;
+        var selectedMarkerAdded = false;
+        foreach (var candidate in _grappleCandidates)
+        {
+            var selected = ReflectionAccess.SameNativeObject(candidate.Attackable, selectedAttackable);
+            var retained = ReflectionAccess.SameNativeObject(candidate.Attackable, retainedAttackable);
+            if (!TryGetGrappleCandidateWorldPosition(candidate.Attackable, out var worldPosition) ||
+                !TryWorldToScreen(worldPosition!, out var screenPosition))
+            {
+                continue;
+            }
+
+            if (selected && hasTargetMetrics)
+            {
+                screenPosition = target;
+            }
+
+            candidateIndex++;
+            if (!selected)
+            {
+                unselectedIndex++;
+            }
+            var cursorHit = PrecisionHitTest.IsHit(
+                cursor,
+                screenPosition,
+                viewport,
+                _settings.RadiusPixels,
+                _settings.ReferenceHeight);
+            var candidateState = GetCandidateState(
+                candidate,
+                selected,
+                retained,
+                cursorHit,
+                grappleState,
+                normalRange,
+                currentRange,
+                hookAngle,
+                noInputHookAngle,
+                retainAngleBonus);
+            var detail = GetCandidateDetail(
+                candidate,
+                candidateState,
+                retained,
+                selectedCost,
+                effectiveRadius,
+                cursor,
+                screenPosition,
+                normalRange,
+                currentRange,
+                hookAngle,
+                noInputHookAngle,
+                retainAngleBonus,
+                globalBlockDetail);
+            markers.Add(new DebugMarker(
+                screenPosition,
+                selected ? "G*" : $"G{unselectedIndex}",
+                selected ? DebugMarkerKind.GrappleTarget : DebugMarkerKind.GrappleCandidate,
+                candidateState,
+                detail));
+            selectedMarkerAdded |= selected;
+        }
+
+        if (hasTarget && hasTargetMetrics && !selectedMarkerAdded)
+        {
+            markers.Add(new DebugMarker(
+                target,
+                "G*",
+                DebugMarkerKind.GrappleTarget,
+                grappleState,
+                string.IsNullOrEmpty(globalBlockDetail)
+                    ? precisionHit ? "READY" : $"CURSOR {Format(targetScreenDistance)} > {Format(effectiveRadius)}"
+                    : globalBlockDetail));
+        }
+
+        var bashRange = ReadNumber(_latestBashAttack, "Range");
+        var bashDistance = double.NaN;
+        var hasBashTarget = TryGetBashWorldPosition(out var bashWorld);
+        if (hasBashTarget)
+        {
+            if (TryGetOriWorldPosition(out var oriWorld))
+            {
+                bashDistance = WorldDistance(oriWorld!, bashWorld!);
+            }
+
+            if (TryWorldToScreen(bashWorld!, out var bashScreen))
+            {
+                markers.Add(new DebugMarker(
+                    bashScreen,
+                    "B",
+                    DebugMarkerKind.BashTarget,
+                    DiagnosticMarkerStates.Bash,
+                    $"BASH {Format(bashDistance)} / {Format(bashRange)}"));
+            }
+        }
+
         var searchAge = _targetSearchCompletedAt <= 0
             ? -1
             : Math.Max(0, Environment.TickCount64 - _targetSearchCompletedAt);
@@ -387,16 +512,20 @@ internal sealed class GameRuntime : IDisposable
             $"CanLeash {Flag(canLeash)} | vanilla HasTarget {Flag(hasTarget)} | state {state}",
             $"Cooldown move {Format(moveCooldownTimer)} | provider {Format(providerCooldownTimer)}",
             $"Range normal {Format(normalRange)} | retained {Format(currentRange)} | target distance {Format(targetDistance)}",
+            $"Direction input {Format(hookAngle)} | no-input {Format(noInputHookAngle)} | retain +{Format(retainAngleBonus)} | facing {Format(facingAngle)}",
+            $"Retention {Format(retentionDuration)} s | sustained cost {Format(sustainedCost)} | status {grappleState}",
             $"Grapple candidates {_grappleCandidates.Count} | screen-visible {candidateIndex}",
             $"Target/cursor delta {Format(targetScreenDistance)} px | threshold {Format(effectiveRadius)} px | precision {Flag(precisionHit)}",
             $"Bash target {Flag(hasBashTarget)} | distance {Format(bashDistance)} | range {Format(bashRange)} | in range {Flag(bashInRange)}",
-            "Markers: G*=selected Grapple, G#=evaluated Grapple, B=Bash, ring=precision radius",
+            "Colors: green ready | red cursor miss | yellow selector | purple retained | gray range | magenta blocked",
+            "Circles: large=mouse acceptance | small=actual hook point; candidates are post-filter observations",
         };
 
         foreach (var candidate in _grappleCandidates.Take(6))
         {
+            var selected = ReflectionAccess.SameNativeObject(candidate.Attackable, selectedAttackable);
             lines.Add(
-                $"  G cost {Format(candidate.Cost)} | dist {Format(candidate.Distance)} | angle {Format(candidate.AngleDifference)} | input {Flag(candidate.HasInputDirection)}");
+                $"  {(selected ? "G*" : "G ")} cost {Format(candidate.Cost)} | dist {Format(candidate.Distance)} | angle {Format(candidate.AngleDifference)} | input {Flag(candidate.HasInputDirection)}");
         }
 
         return new DebugSnapshot
@@ -406,11 +535,154 @@ internal sealed class GameRuntime : IDisposable
             Cursor = cursor,
             GrappleTarget = hasTarget && hasTargetMetrics ? target : null,
             EffectiveRadius = effectiveRadius,
+            TargetMarkerRadius = targetMarkerRadius,
             PrecisionHit = precisionHit,
+            GrappleState = grappleState,
+            GrappleRangeCenter = grappleRangeCenter,
+            NormalRangeRadiusX = normalRangeRadiusX,
+            NormalRangeRadiusY = normalRangeRadiusY,
+            RetainedRangeRadiusX = retainedRangeRadiusX,
+            RetainedRangeRadiusY = retainedRangeRadiusY,
             Lines = lines,
             Markers = markers,
         };
     }
+
+    private static string GetGrappleState(
+        bool hasTarget,
+        bool canLeash,
+        bool precisionHit,
+        double moveCooldown,
+        double providerCooldown,
+        string state)
+    {
+        if (IsPositive(moveCooldown) || IsPositive(providerCooldown))
+        {
+            return DiagnosticMarkerStates.Cooldown;
+        }
+
+        if (!string.Equals(state, "Idle", StringComparison.OrdinalIgnoreCase) && state != "n/a")
+        {
+            return DiagnosticMarkerStates.Busy;
+        }
+
+        if (hasTarget && !canLeash)
+        {
+            return DiagnosticMarkerStates.Blocked;
+        }
+
+        if (!hasTarget)
+        {
+            return DiagnosticMarkerStates.Candidate;
+        }
+
+        return precisionHit ? DiagnosticMarkerStates.Ready : DiagnosticMarkerStates.CursorMiss;
+    }
+
+    private static string GetGlobalBlockDetail(
+        string grappleState,
+        double moveCooldown,
+        double providerCooldown,
+        string state) => grappleState switch
+        {
+            DiagnosticMarkerStates.Cooldown => $"COOLDOWN M{Format(moveCooldown)} P{Format(providerCooldown)}",
+            DiagnosticMarkerStates.Busy => $"STATE {state}",
+            DiagnosticMarkerStates.Blocked => "CANLEASH NO",
+            _ => string.Empty,
+        };
+
+    private static string GetCandidateState(
+        GrappleCandidateObservation candidate,
+        bool selected,
+        bool retained,
+        bool cursorHit,
+        string grappleState,
+        double normalRange,
+        double retainedRange,
+        double hookAngle,
+        double noInputHookAngle,
+        double retainAngleBonus)
+    {
+        var allowedRange = retained && double.IsFinite(retainedRange) ? retainedRange : normalRange;
+        if (double.IsFinite(allowedRange) && candidate.Distance > allowedRange)
+        {
+            return DiagnosticMarkerStates.OutOfRange;
+        }
+
+        if (retained && double.IsFinite(normalRange) && candidate.Distance > normalRange)
+        {
+            return DiagnosticMarkerStates.RetainedRange;
+        }
+
+        if (selected)
+        {
+            return grappleState;
+        }
+
+        var angleLimit = candidate.HasInputDirection ? hookAngle : noInputHookAngle;
+        if (retained && double.IsFinite(retainAngleBonus))
+        {
+            angleLimit += retainAngleBonus;
+        }
+
+        if (double.IsFinite(angleLimit) && candidate.AngleDifference > angleLimit)
+        {
+            return DiagnosticMarkerStates.Direction;
+        }
+
+        return cursorHit
+            ? DiagnosticMarkerStates.SelectorConflict
+            : DiagnosticMarkerStates.Candidate;
+    }
+
+    private static string GetCandidateDetail(
+        GrappleCandidateObservation candidate,
+        string candidateState,
+        bool retained,
+        double selectedCost,
+        double effectiveRadius,
+        ScreenPoint cursor,
+        ScreenPoint target,
+        double normalRange,
+        double retainedRange,
+        double hookAngle,
+        double noInputHookAngle,
+        double retainAngleBonus,
+        string globalBlockDetail)
+    {
+        var cursorDistance = ScreenDistance(cursor, target);
+        return candidateState switch
+        {
+            DiagnosticMarkerStates.Ready => $"READY d{Format(candidate.Distance)} a{Format(candidate.AngleDifference)}",
+            DiagnosticMarkerStates.CursorMiss => $"CURSOR {Format(cursorDistance)} > {Format(effectiveRadius)}",
+            DiagnosticMarkerStates.SelectorConflict => $"CURSOR HIT; COST {Format(candidate.Cost)} vs {Format(selectedCost)}",
+            DiagnosticMarkerStates.Direction => $"ANGLE {Format(candidate.AngleDifference)} > {Format(GetAngleLimit(candidate, retained, hookAngle, noInputHookAngle, retainAngleBonus))}",
+            DiagnosticMarkerStates.RetainedRange => $"RETAINED RANGE {Format(candidate.Distance)} / {Format(retainedRange)}",
+            DiagnosticMarkerStates.OutOfRange => $"OUT OF RANGE {Format(candidate.Distance)} > {Format(retained && double.IsFinite(retainedRange) ? retainedRange : normalRange)}",
+            DiagnosticMarkerStates.Cooldown or
+            DiagnosticMarkerStates.Busy or
+            DiagnosticMarkerStates.Blocked => globalBlockDetail,
+            _ => $"COST {Format(candidate.Cost)} | d{Format(candidate.Distance)} a{Format(candidate.AngleDifference)}",
+        };
+    }
+
+    private static double GetAngleLimit(
+        GrappleCandidateObservation candidate,
+        bool retained,
+        double hookAngle,
+        double noInputHookAngle,
+        double retainAngleBonus) =>
+        (candidate.HasInputDirection ? hookAngle : noInputHookAngle) +
+        (retained && double.IsFinite(retainAngleBonus) ? retainAngleBonus : 0.0);
+
+    private static double ScreenDistance(ScreenPoint first, ScreenPoint second)
+    {
+        var deltaX = first.X - second.X;
+        var deltaY = first.Y - second.Y;
+        return Math.Sqrt((deltaX * deltaX) + (deltaY * deltaY));
+    }
+
+    private static bool IsPositive(double value) => double.IsFinite(value) && value > 0.001;
 
     private bool IsPreciseGrappleTarget()
     {
@@ -527,6 +799,46 @@ internal sealed class GameRuntime : IDisposable
             ? null
             : ReflectionAccess.Get(sein, "Position") ?? TryInvoke(sein, "get_Position");
         return worldPosition is not null;
+    }
+
+    private bool TryGetWorldRangeProjection(
+        object worldOrigin,
+        double range,
+        out ScreenPoint center,
+        out double radiusX,
+        out double radiusY)
+    {
+        center = default;
+        radiusX = 0.0;
+        radiusY = 0.0;
+        if (_types?.Vector3 is null || !double.IsFinite(range) || range <= 0.0)
+        {
+            return false;
+        }
+
+        try
+        {
+            var origin = ReadPoint(worldOrigin);
+            var horizontal = ReflectionAccess.CreateVector(_types.Vector3, origin.X + range, origin.Y, origin.Depth);
+            var vertical = ReflectionAccess.CreateVector(_types.Vector3, origin.X, origin.Y + range, origin.Depth);
+            if (!TryWorldToScreen(worldOrigin, out center) ||
+                !TryWorldToScreen(horizontal, out var horizontalScreen) ||
+                !TryWorldToScreen(vertical, out var verticalScreen))
+            {
+                return false;
+            }
+
+            radiusX = ScreenDistance(center, horizontalScreen);
+            radiusY = ScreenDistance(center, verticalScreen);
+            return double.IsFinite(radiusX) && double.IsFinite(radiusY);
+        }
+        catch
+        {
+            center = default;
+            radiusX = 0.0;
+            radiusY = 0.0;
+            return false;
+        }
     }
 
     private bool TryWorldToScreen(object worldPosition, out ScreenPoint screenPosition)
