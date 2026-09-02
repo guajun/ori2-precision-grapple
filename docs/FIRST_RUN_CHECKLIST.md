@@ -6,7 +6,7 @@ Use this checklist for every fresh machine or BepInEx installation.
 2. Run `scripts/install.ps1` while Ori is closed.
 3. Launch Ori manually and wait for BepInEx's first-time IL2CPP generation.
 4. Close Ori and inspect `BepInEx/LogOutput.log` for:
-   - `Ori Precision Grapple 0.2.1 loaded`
+   - `Ori Precision Grapple 0.2.2 loaded`
    - no `Missing interop types` or patch rollback message
 5. Test right-click away from targets: Bash should begin.
 6. Test right-click directly on blue moss, hooks and eligible enemies: Grapple

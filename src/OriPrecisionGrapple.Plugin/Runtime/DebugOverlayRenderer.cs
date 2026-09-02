@@ -14,6 +14,7 @@ internal sealed class DebugOverlayRenderer
     private readonly Type _guiType;
     private readonly Type _rectType;
     private readonly Type _colorType;
+    private readonly Type? _matrixType;
     private readonly MethodInfo _box;
     private readonly MethodInfo _label;
     private readonly IRuntimeSettings _settings;
@@ -25,6 +26,7 @@ internal sealed class DebugOverlayRenderer
         Type guiType,
         Type rectType,
         Type colorType,
+        Type? matrixType,
         MethodInfo box,
         MethodInfo label,
         IRuntimeSettings settings,
@@ -33,6 +35,7 @@ internal sealed class DebugOverlayRenderer
         _guiType = guiType;
         _rectType = rectType;
         _colorType = colorType;
+        _matrixType = matrixType;
         _box = box;
         _label = label;
         _settings = settings;
@@ -61,7 +64,7 @@ internal sealed class DebugOverlayRenderer
         }
 
         status = "Unity GUI types and text draw methods resolved.";
-        return new DebugOverlayRenderer(types.Gui, types.Rect, types.Color, box, label, settings, log);
+        return new DebugOverlayRenderer(types.Gui, types.Rect, types.Color, types.Matrix4x4, box, label, settings, log);
     }
 
     public void Draw(DebugSnapshot snapshot)
@@ -72,10 +75,34 @@ internal sealed class DebugOverlayRenderer
         }
 
         object? originalColor = null;
+        object? originalContentColor = null;
+        object? originalBackgroundColor = null;
+        object? originalEnabled = null;
+        object? originalDepth = null;
+        object? originalMatrix = null;
         try
         {
             originalColor = ReflectionAccess.GetStatic(_guiType, "color");
+            originalContentColor = ReflectionAccess.GetStatic(_guiType, "contentColor");
+            originalBackgroundColor = ReflectionAccess.GetStatic(_guiType, "backgroundColor");
+            originalEnabled = ReflectionAccess.GetStatic(_guiType, "enabled");
+            originalDepth = ReflectionAccess.GetStatic(_guiType, "depth");
+            originalMatrix = ReflectionAccess.GetStatic(_guiType, "matrix");
+
+            ReflectionAccess.TrySetStatic(_guiType, true, "enabled");
+            ReflectionAccess.TrySetStatic(_guiType, -10000, "depth");
+            if (_matrixType is not null)
+            {
+                var identity = ReflectionAccess.GetStatic(_matrixType, "identity");
+                if (identity is not null)
+                {
+                    ReflectionAccess.TrySetStatic(_guiType, identity, "matrix");
+                }
+            }
+
             SetColor(1.0f, 1.0f, 1.0f, 1.0f);
+            SetGuiColor("contentColor", 1.0f, 1.0f, 1.0f, 1.0f);
+            SetGuiColor("backgroundColor", 0.12f, 0.12f, 0.12f, 0.95f);
 
             var panelHeight = 34.0f + (snapshot.Lines.Count * LineHeight);
             Box(PanelX, PanelY, PanelWidth, panelHeight, "Ori Precision Grapple Diagnostics");
@@ -112,6 +139,11 @@ internal sealed class DebugOverlayRenderer
                 try
                 {
                     ReflectionAccess.SetStatic(_guiType, originalColor, "color");
+                    Restore(originalContentColor, "contentColor");
+                    Restore(originalBackgroundColor, "backgroundColor");
+                    Restore(originalEnabled, "enabled");
+                    Restore(originalDepth, "depth");
+                    Restore(originalMatrix, "matrix");
                 }
                 catch
                 {
@@ -182,9 +214,22 @@ internal sealed class DebugOverlayRenderer
 
     private void SetColor(float red, float green, float blue, float alpha)
     {
+        SetGuiColor("color", red, green, blue, alpha);
+    }
+
+    private void SetGuiColor(string property, float red, float green, float blue, float alpha)
+    {
         var color = Activator.CreateInstance(_colorType, red, green, blue, alpha)
             ?? throw new InvalidOperationException("Could not construct UnityEngine.Color.");
-        ReflectionAccess.SetStatic(_guiType, color, "color");
+        ReflectionAccess.TrySetStatic(_guiType, color, property);
+    }
+
+    private void Restore(object? value, string property)
+    {
+        if (value is not null)
+        {
+            ReflectionAccess.TrySetStatic(_guiType, value, property);
+        }
     }
 
     private void Box(float x, float y, float width, float height, string text) =>

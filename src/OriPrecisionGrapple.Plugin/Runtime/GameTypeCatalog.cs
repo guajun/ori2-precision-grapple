@@ -22,6 +22,7 @@ internal sealed class GameTypeCatalog
     public Type? Gui { get; private init; }
     public Type? Rect { get; private init; }
     public Type? Color { get; private init; }
+    public Type? Matrix4x4 { get; private init; }
     public Type? BashAttack { get; private init; }
 
     public static bool TryCreate(out GameTypeCatalog? catalog, out string error)
@@ -72,6 +73,7 @@ internal sealed class GameTypeCatalog
             Gui = FindType("UnityEngine.GUI"),
             Rect = FindType("UnityEngine.Rect"),
             Color = FindType("UnityEngine.Color"),
+            Matrix4x4 = FindType("UnityEngine.Matrix4x4"),
             BashAttack = FindType("SeinBashAttack"),
         };
         error = string.Empty;

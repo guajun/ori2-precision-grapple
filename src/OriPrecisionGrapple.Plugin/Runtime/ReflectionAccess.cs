@@ -14,6 +14,19 @@ internal static class ReflectionAccess
 
     public static void SetStatic(Type type, object value, params string[] names) => Set(type, null, value, names);
 
+    public static bool TrySetStatic(Type type, object value, params string[] names)
+    {
+        try
+        {
+            Set(type, null, value, names);
+            return true;
+        }
+        catch (MissingMemberException)
+        {
+            return false;
+        }
+    }
+
     public static bool GetBoolean(object instance, bool fallback, params string[] names)
     {
         var value = Get(instance, names);
