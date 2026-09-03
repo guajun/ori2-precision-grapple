@@ -13,6 +13,14 @@ if (-not (Test-Path -LiteralPath $monitor -PathType Leaf)) {
     throw "Monitor executable was not built: $monitor"
 }
 
+$runningMonitor = Get-Process -Name 'OriPrecisionGrapple.Monitor' -ErrorAction SilentlyContinue |
+    Where-Object { $_.Path -eq $monitor } |
+    Select-Object -First 1
+if ($null -ne $runningMonitor) {
+    Write-Host "Monitor is already running (PID $($runningMonitor.Id))."
+    return
+}
+
 $process = Start-Process -FilePath $monitor -WorkingDirectory (Split-Path -Parent $monitor) -PassThru
 Start-Sleep -Milliseconds 750
 if ($process.HasExited) {

@@ -77,6 +77,10 @@ rendering pipeline.
 .\scripts\start-monitor.ps1
 ```
 
+For normal use, double-click `Start Monitor.cmd` in the project root. It starts
+the already-built monitor and rebuilds it automatically if the executable is
+missing.
+
 The monitor may start before or after Ori and reconnects automatically. The
 experimental in-game overlay is disabled by default.
 
